@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Music Player & Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(120deg, #bdc3c7, #2c3e50 100%);
+      margin: 0; min-height: 100vh;
+      color: #fff; display:flex; flex-direction:column; align-items:center;
+    }
+    h1 {
+      font-size: 2.15rem; letter-spacing:.6px; margin:38px 0 15px 0; text-align:center; color:#e1e7eb;
+      text-shadow: 0 2px 12px #252c3a66;
+    }
+    .player-box {
+      background: #222b36aa; border-radius: 17px;
+      box-shadow:0 3px 20px #1a283324; padding:26px 24px 18px 24px;
+      min-width:320px; max-width:95vw;
+    }
+    .track-list {
+      display:flex; gap:10px; justify-content:center; margin-bottom:21px; flex-wrap:wrap;
+    }
+    .track-btn {
+      background:#6dc0ae; color:#173437; border:none; border-radius:8px; font-weight:600;
+      font-size:1em; padding:6px 18px; cursor:pointer; transition: background .18s;
+    }
+    .track-btn.selected, .track-btn:hover{ background:#49ab8d; color:#fff;}
+    .controls {display:flex; gap:12px; justify-content:center; align-items:center; margin:15px 0;}
+    .play-btn {
+      background:#faea4b; color:#553; font-weight:700; font-size:1.08em;
+      border:none; border-radius:8px; padding:7px 22px; cursor:pointer; transition: background .12s;
+      box-shadow: 0 2px 9px #fff59a33;
+    }
+    .play-btn:hover{background:#e4cc2d;}
+    .progress-bar {
+      width: 100%; max-width:320px; height:8px; border-radius:4px; background:#8fcbcb77;
+      margin:15px 0 7px 0; position:relative; overflow:hidden;
+    }
+    .progress {
+      height:100%; background:#42bfff; border-radius: 4px 0 0 4px;
+      transition: width .14s;
+    }
+    .time {
+      display:flex;justify-content:space-between;font-size:0.98em;color:#b3e9fd; margin:0 5px 6px 5px;
+    }
+    #visualizer {
+      display:block; width:320px; height:70px; background:#1a3141; border-radius:8px;
+      margin:17px auto 6px auto;
+      box-shadow: 0 2px 12px #76e3fd18;
+    }
+    .footer{
+      margin:22px 0 9px 0;text-align:center;opacity:0.37;font-size:0.98rem;
+    }
+    @media(max-width:400px){.player-box{padding:8px 3vw 10px 3vw;}#visualizer{width:96vw;max-width:98vw;}}
+  </style>
+</head>
+<body>
+  <h1>🎶 Music Player & Real-Time Visualizer</h1>
+  <div class="player-box">
+    <div class="track-list" id="trackList"></div>
+    <canvas id="visualizer" width="320" height="70"></canvas>
+    <div class="controls">
+      <button class="play-btn" id="playBtn">Play</button>
+      <span id="nowPlaying">Track 1</span>
+      <input type="range" min="0" max="1" step="0.01" id="vol" style="width:90px;">
+    </div>
+    <div class="progress-bar"><div class="progress" id="progress"></div></div>
+    <div class="time"><span id="currTime">0:00</span> <span id="duration">0:00</span></div>
+    <!-- audio element hidden; controlled via JS -->
+    <audio id="audio" preload="auto"></audio>
+  </div>
+  <div class="footer">
+    All-in-one HTML by YourName · Audio visualization in-browser!
+  </div>
+  <script>
+    // You can replace these with your own MP3/OGG files if you wish!
+    const TRACKS = [
+      {name:"Chill Drive", src:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
+      {name:"Energetic Vibes", src:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
+      {name:"Dreamy Mood", src:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"}
+    ];
+    let current = 0, audio = document.getElementById('audio'), playing = false;
+
+    // Track list rendering
+    let trackList = document.getElementById('trackList');
+    TRACKS.forEach((track,i)=>{
+      let btn = document.createElement('button');
+      btn.textContent = track.name;
+      btn.className = 'track-btn' + (i==0 ? " selected" : "");
+      btn.onclick = ()=>selectTrack(i);
+      trackList.appendChild(btn);
+    });
+
+    function selectTrack(idx){
+      current = idx;
+      document.querySelectorAll('.track-btn').forEach((b,i)=>b.classList.toggle('selected', i===idx));
+      audio.src = TRACKS[idx].src;
+      document.getElementById('nowPlaying').textContent = TRACKS[idx].name;
+      audio.currentTime = 0;
+      playPause(true);
+    }
+    selectTrack(0);
+
+    // Controls/playback logic
+    let playBtn = document.getElementById('playBtn');
+    playBtn.onclick = ()=>playPause();
+    function playPause(forcePlay){
+      if(audio.paused || forcePlay){
+        audio.play();
+        playBtn.textContent = "Pause";
+        playing = true;
+      } else {
+        audio.pause();
+        playBtn.textContent = "Play";
+        playing = false;
+      }
+    }
+    audio.onended = ()=>{ if(current<TRACKS.length-1)selectTrack(current+1); else playPause(false); };
+
+    // Progress Bar and Time
+    let progress = document.getElementById('progress');
+    audio.ontimeupdate = ()=>{
+      if(audio.duration){
+        progress.style.width = (audio.currentTime/audio.duration*100)+"%";
+        document.getElementById('currTime').textContent = fmt(audio.currentTime);
+        document.getElementById('duration').textContent = fmt(audio.duration);
+      }
+    };
+    function fmt(s){s=Math.floor(s);return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,"0")}`;}
+    document.querySelector('.progress-bar').onclick = function(e){
+      let rect = this.getBoundingClientRect(), percent = (e.clientX-rect.left)/rect.width;
+      audio.currentTime = percent*audio.duration;
+    };
+
+    // Volume
+    let vol = document.getElementById('vol'); vol.value=0.9;
+    vol.oninput = ()=>{ audio.volume = vol.value; };
+
+    // ---- VISUALIZER ----
+    let ctx = document.getElementById('visualizer').getContext('2d');
+    let ac, src, analyser, data;
+    function setupAudioContext(){
+      ac = new (window.AudioContext||window.webkitAudioContext)();
+      src = ac.createMediaElementSource(audio);
+      analyser = ac.createAnalyser();
+      src.connect(analyser); analyser.connect(ac.destination);
+      analyser.fftSize = 64; // 32 bars visual
+      data = new Uint8Array(analyser.frequencyBinCount);
+    }
+    setupAudioContext();
+
+    function draw(){
+      requestAnimationFrame(draw);
+      ctx.clearRect(0,0,320,70);
+      if(!playing) return;
+      analyser.getByteFrequencyData(data);
+      for(let i=0;i<data.length;++i){
+        let val = data[i], h=val/2;
+        ctx.fillStyle=`hsl(${190+i*8},87%,66%)`;
+        ctx.fillRect(i*10+6,70-h-4,7,h+4);
+      }
+    }
+    draw();
+
+    // Context resume on click/touch for autoplay compliance
+    document.body.addEventListener('pointerdown',()=>{ if(ac.state==="suspended") ac.resume(); },{once:true});
+  </script>
+</body>
+</html>
