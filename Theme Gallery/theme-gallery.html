@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Theme Gallery / Palette Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#f4ecfd 0%,#a4d8ff 100%);
+      font-family:'Segoe UI',Arial,sans-serif; min-height:100vh;margin:0; color:#252c3a;
+      display:flex; flex-direction:column; align-items:center; }
+    h1 {margin:34px 0 12px 0;font-size:2.19rem;color:#7152d8;}
+    .gallery-box{background:rgba(255,255,255,0.98);padding:28px 20px 16px 20px;border-radius:16px;
+      box-shadow:0 4px 22px #bfa4eb17;max-width:990px;width:99vw;display:flex;flex-direction:column;align-items:center;}
+    .palettes {display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.3em;width:98vw;max-width:860px;}
+    .palette {
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;
+      padding:18px 14px 11px 14px; border-radius:13px; background:#fcfaf7;
+      box-shadow:0 2px 10px #a177e912; margin-bottom:13px; margin-top:3px;position:relative;
+      animation:popin .4s; transition:box-shadow .18s,background .12s;
+    }
+    .palette.fav {box-shadow:0 2px 19px #FABD36cc;background:#f8f5e2;}
+    @keyframes popin{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+    .swatch-row{display:flex;gap:6px;}
+    .swatch {
+      width:36px;height:36px;border-radius:9px;box-shadow:0 2px 7px #e3dbdee7;cursor:pointer;
+      border:2.2px solid #fff;transition:border .08s;
+    }
+    .swatch:hover {border-color:#5140d2;}
+    .p-title {font-weight:700;font-size:1.13em;margin-top:3px; color:#695191;}
+    .copy-btn, .fav-btn {
+      background:#ebdfac;color:#48413c;font-weight:600;border:none;padding:4px 13px;
+      border-radius:7px;margin:0 6px;cursor:pointer;transition:background .18s;
+    }
+    .fav-btn.selected, .palette.fav .fav-btn{background:#ffe862;color:#e17f17;}
+    .copy-btn:active {background:#abf0d4;}
+    .fav-btn:active {background:#ffd032;}
+    .copynotif {
+      position:fixed;top:30px;left:50%;transform:translateX(-50%);
+      background:#4bd99f;color:#fff;padding:10px 26px;
+      border-radius:13px;font-weight:600;font-size:1em;z-index:200;box-shadow:0 2px 18px #12ceae95;display:none;
+    }
+    @media(max-width:600px){.gallery-box{padding:11px 3vw 10px 3vw;}.palettes{grid-template-columns:1fr;}}
+    .footer{margin:23px 0 9px 0;text-align:center;opacity:.36;font-size:.98em;}
+  </style>
+</head>
+<body>
+  <h1>🎨 Theme Gallery & Palette Picker</h1>
+  <div class="gallery-box">
+    <div class="palettes" id="palettes"></div>
+  </div>
+  <div class="copynotif" id="copyNotif"></div>
+  <div class="footer">All-in-one HTML by YourName · Preview, favorite, and copy palettes</div>
+  <script>
+    // --- Demo palettes/themes ---
+    const PALETTES = [
+      {title:"Serenity Sky",colors:["#b2f0ee","#5ee3f9","#58b8fc","#585b87","#231942"]},
+      {title:"Sunset Studio",colors:["#fedd8d","#f98780","#b75084","#6c3082","#2f1036"]},
+      {title:"Forest Mood",colors:["#b7ced7","#679186","#335c67","#132a13","#fffadd"]},
+      {title:"Pop Candy",colors:["#f9d6e2","#f7aef8","#a0e7e5","#b4f8c8","#fcf6bd"]},
+      {title:"Nightlife",colors:["#040303","#274690","#576CA8","#302B27","#FFC857"]},
+      {title:"Soft Peach",colors:["#ffe5ec","#fcd5ce","#f8edeb","#d8e2dc","#b7b7a4"]},
+      {title:"Mint Galaxy",colors:["#b6ffd7","#70f8ba","#20dfd7","#3ca4a6","#355070"]},
+      {title:"Amber Rust",colors:["#f9c784","#ffb677","#f97b63","#bd3c29","#800e13"]},
+    ];
+    // --- Favorites ---
+    function getFavs(){return JSON.parse(localStorage.paletteFavs||"[]");}
+    function setFavs(d){localStorage.paletteFavs=JSON.stringify(d);}
+    function renderPalettes(){
+      let favs=getFavs();
+      document.getElementById('palettes').innerHTML = PALETTES.map((p,i)=>`
+        <div class="palette${favs.includes(i)?' fav':''}">
+          <div class="swatch-row">
+            ${p.colors.map(c=>`<div class="swatch" style="background:${c}" title="${c}" onclick="copySwatch('${c}')"></div>`).join('')}
+          </div>
+          <div class="p-title">${p.title}</div>
+          <div>
+            <button class="copy-btn" onclick="copyPalette(${i})">Copy Hexes</button>
+            <button class="fav-btn${favs.includes(i)?' selected':''}" onclick="toggleFav(${i})">${favs.includes(i)?'★':'☆'} Favorite</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    // --- Copy logic ---
+    function showCopy(msg){
+      let n=document.getElementById('copyNotif');
+      n.textContent=msg;n.style.display="block";
+      setTimeout(()=>{n.style.display="none"},1200);
+    }
+    window.copySwatch = function(hex){
+      navigator.clipboard.writeText(hex);
+      showCopy("Copied "+hex);
+    }
+    window.copyPalette = function(idx){
+      let h = PALETTES[idx].colors.join(" ");
+      navigator.clipboard.writeText(h);
+      showCopy("Palette copied!");
+    }
+    window.toggleFav = function(idx){
+      let favs=getFavs(), has=favs.includes(idx);
+      if(has) favs=favs.filter(i=>i!==idx); else favs.push(idx);
+      setFavs(favs);renderPalettes();
+    }
+    renderPalettes();
+  </script>
+</body>
+</html>
