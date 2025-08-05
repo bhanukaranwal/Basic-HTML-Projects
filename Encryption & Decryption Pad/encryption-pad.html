@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Encryption & Decryption Pad</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#a1c4fd 0%,#c2e9fb 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#173356;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:32px 0 10px 0;font-size:2.13rem;color:#4387c7;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:24px 15px 12px 15px;
+      border-radius:14px;box-shadow:0 4px 24px #c2e9fb89;margin-bottom:14px;
+      width:99vw;max-width:402px;display:flex;flex-direction:column;align-items:center;
+    }
+    textarea,input {font-size:1.07em;border-radius:7px;border:1.3px solid #a9cff3;padding:10px;}
+    textarea {width:94%;min-height:77px;margin-bottom:9px;resize:vertical;}
+    .pw-row {display:flex;gap:7px;margin-bottom:12px;}
+    .pw-row input {width:146px;}
+    button {
+      background:#4387c7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:7px 17px;margin:7px 5px;cursor:pointer;}
+    button:hover{background:#234e7d;}
+    .output-box{width:94%;background:#e0eeff;border-radius:8px;color:#293660;
+      min-height:49px;padding:8px;margin:10px 0 4px 0;font-size:1.08em;word-break:break-all;}
+    .footer{margin:17px 0 7px 0;text-align:center;opacity:.37;font-size:.98em;}
+    @media(max-width:430px){.main-box{padding:7px 2vw 8px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🔒 Encryption Pad</h1>
+  <div class="main-box">
+    <textarea id="input" placeholder="Type or paste your text here..."></textarea>
+    <div class="pw-row">
+      <input type="password" id="password" placeholder="Password" autocomplete="off">
+      <button onclick="doEncrypt()">Encrypt</button>
+      <button onclick="doDecrypt()">Decrypt</button>
+    </div>
+    <div class="output-box" id="output"></div>
+    <button onclick="copyOut()">Copy Result</button>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · AES encryption in your browser. Never leaves your device.</div>
+  <script>
+    async function getKey(pass,salt){
+      let enc = new TextEncoder();
+      let key = await window.crypto.subtle.importKey(
+        "raw", enc.encode(pass), {name:"PBKDF2"}, false, ["deriveKey"]);
+      return window.crypto.subtle.deriveKey(
+        {name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},
+        key,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]
+      );
+    }
+    async function doEncrypt(){
+      let text = document.getElementById('input').value, pass = document.getElementById('password').value;
+      if(!text||!pass) {show("Please enter text and password.");return;}
+      let enc = new TextEncoder();
+      let salt = window.crypto.getRandomValues(new Uint8Array(16));
+      let iv = window.crypto.getRandomValues(new Uint8Array(12));
+      let key = await getKey(pass,salt);
+      let cipher = await window.crypto.subtle.encrypt(
+        {name:"AES-GCM",iv}, key, enc.encode(text));
+      let buf = new Uint8Array([...salt,...iv,...new Uint8Array(cipher)]);
+      let b64 = btoa(String.fromCharCode.apply(null,buf));
+      show(b64);
+    }
+    async function doDecrypt(){
+      let b64 = document.getElementById('input').value, pass = document.getElementById('password').value;
+      if(!b64||!pass) {show("Please enter encrypted text and password.");return;}
+      let bin = Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      let salt=bin.slice(0,16),iv=bin.slice(16,28),data=bin.slice(28);
+      let key = await getKey(pass,salt);
+      try {
+        let plain = await window.crypto.subtle.decrypt(
+          {name:"AES-GCM",iv},key,data);
+        show(new TextDecoder().decode(plain));
+      } catch {
+        show("Invalid password or corrupted ciphertext.");
+      }
+    }
+    function show(str){
+      document.getElementById('output').textContent = str;
+    }
+    function copyOut(){
+      let str = document.getElementById('output').textContent;
+      if(str){navigator.clipboard.writeText(str);}
+    }
+  </script>
+</body>
+</html>
