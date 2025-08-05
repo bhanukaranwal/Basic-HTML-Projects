@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Expense Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: linear-gradient(120deg, #c1e8e8 0%, #ffc9de 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh; margin: 0; color: #28494a;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { margin: 35px 0 10px 0; font-size: 2.1rem; color: #ea588f;}
+    .main-box {
+      background: rgba(255,255,255,0.97); padding: 29px 18px 16px 18px;
+      border-radius: 16px; box-shadow: 0 6px 24px #bd69b44c;
+      width: 97vw; max-width: 420px; margin-bottom: 18px;
+    }
+    .form-row {
+      display: flex; gap: 7px; margin-bottom: 15px; flex-wrap: wrap;
+    }
+    .form-row input, .form-row select {
+      font-size: 1em; padding: 7px 12px; border-radius: 8px; border: 1.2px solid #caf0f8;
+    }
+    .form-row button {
+      background: #ea588f; color: #fff; font-weight: 600; border: none;
+      border-radius: 8px; padding: 7px 18px; font-size: 1em; cursor: pointer; transition: background .14s;
+    }
+    .form-row button:hover {background: #bf3b6f;}
+    .total-bar {
+      background: #fbe5ef;
+      padding: 12px 14px; border-radius: 10px; font-size: 1.07em;
+      color: #be3e65; font-weight: 700; text-align: center; margin-bottom: 12px;
+      box-shadow: 0 1px 8px #e8a5d421;
+    }
+    .expense-table {
+      width: 100%; margin-bottom: 13px; border-collapse: collapse;
+    }
+    .expense-table th, .expense-table td {
+      padding: 6px 5px; text-align: left; font-size: 1em;
+      border-bottom: 1px solid #ececec;
+    }
+    .expense-table th {color:#d37aae;}
+    .expense-table tr:last-child td {border-bottom: none;}
+    .del-btn {
+      background: #f9c7ca; color: #b13e47; border: none; border-radius: 7px; cursor: pointer; font-size: 1em;
+      padding: 1px 9px; transition: background .11s;
+    }
+    .del-btn:hover {background: #fd8fa8;}
+    .chart-bar {
+      width: 92%; height: 170px; margin: 0 auto 14px auto;
+      display: flex; align-items: flex-end; gap: 11px;
+      justify-content: center;
+    }
+    .bar {
+      flex:1; min-width:30px; border-radius: 13px 13px 0 0;
+      position: relative;
+      display: flex; flex-direction: column; align-items: center;
+      transition: height 0.3s;
+    }
+    .bar-value {
+      font-size: 0.98em; color: #35467c;
+      margin-bottom: 2px;
+    }
+    .bar-label {
+      color: #ae80b2; font-size: 0.96em; margin-top: 4px;
+    }
+    .footer {margin:20px 0 7px 0;text-align:center;opacity:.37;font-size:.98em;}
+    @media(max-width:430px){.main-box{padding:9px 2vw 8px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>💸 Expense Tracker</h1>
+  <div class="main-box">
+    <form id="expForm" autocomplete="off">
+      <div class="form-row">
+        <input type="date" id="date" required>
+        <input type="number" id="amount" min="0.01" step="0.01" placeholder="Amount" required>
+        <input type="text" id="desc" maxlength="32" placeholder="Description" required>
+        <select id="cat">
+          <option>Food</option>
+          <option>Transport</option>
+          <option>Shopping</option>
+          <option>Entertainment</option>
+          <option>Bills</option>
+          <option>Other</option>
+        </select>
+        <button type="submit">Add</button>
+      </div>
+    </form>
+    <div class="total-bar" id="totalBar"></div>
+    <div class="chart-bar" id="chartBar"></div>
+    <table class="expense-table" id="expTable"></table>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Track & visualize your spending</div>
+
+  <script>
+    function getExpenses() { return JSON.parse(localStorage.expenses2 || '[]'); }
+    function setExpenses(d) { localStorage.expenses2 = JSON.stringify(d);}
+    function render(){
+      let d = getExpenses();
+      // Table
+      let tbl = document.getElementById('expTable');
+      if(!d.length){
+        tbl.innerHTML = "<tr><td style='color:#aaa;text-align:center;' colspan=5>No expenses yet.</td></tr>";
+      } else {
+        tbl.innerHTML = 
+          `<tr><th>Date</th><th>Desc</th><th>Category</th><th>Amount</th><th></th></tr>` +
+          d.map((e,i)=>`<tr>
+            <td>${e.date}</td>
+            <td>${e.desc}</td>
+            <td>${e.cat}</td>
+            <td style="color:#be3e65;font-weight:600;">$${(+e.amount).toFixed(2)}</td>
+            <td><button class="del-btn" onclick="delExp(${i})">&times;</button></td>
+          </tr>`).join('');
+      }
+      // Total
+      let tot = d.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+      document.getElementById('totalBar').textContent = `Total: $${tot.toFixed(2)}`;
+      // Chart
+      let cats = {}, colors = {
+        Food:'#fd7f6f',Transport:'#7eb0d5',Shopping:'#b2e061',Entertainment:'#bd7ebe',Bills:'#ffb55a',Other:'#c9b29b'
+      };
+      d.forEach(e=>cats[e.cat]=(cats[e.cat]||0)+parseFloat(e.amount||0));
+      let chart = document.getElementById('chartBar');
+      chart.innerHTML = Object.keys(colors).map(cat=>{
+        let val = cats[cat]||0, pct = tot?Math.round(100*val/tot):0;
+        return `<div class="bar" style="height:${tot?90+100*val/tot:20}px;background:${colors[cat]};">
+          <div class="bar-value" title="${cat}: $${val.toFixed(2)}">${val?('$'+val.toFixed(2)):""}</div>
+          <div class="bar-label" style="color:${colors[cat]};">${cat}</div>
+        </div>`
+      }).join('');
+    }
+    // Add
+    document.getElementById('expForm').onsubmit = function(e){
+      e.preventDefault();
+      let d = getExpenses();
+      d.push({
+        date:this.date.value,
+        amount:parseFloat(this.amount.value),
+        desc:this.desc.value,
+        cat:this.cat.value
+      });
+      setExpenses(d); this.reset(); render();
+    };
+    window.delExp = function(i){
+      let d = getExpenses(); d.splice(i,1); setExpenses(d); render();
+    };
+    // Autofill today
+    document.getElementById('date').value = new Date().toISOString().substr(0,10);
+    render();
+  </script>
+</body>
+</html>
