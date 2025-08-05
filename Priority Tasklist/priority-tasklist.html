@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Priority Task List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background: linear-gradient(120deg,#ffecc4 0%,#c8e6ff 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#21253c;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:35px 0 12px 0;font-size:2.14rem;color:#f8704b;}
+    .main-box {
+      background:rgba(255,255,255,0.98);padding:28px 20px 13px 20px;
+      border-radius:16px;box-shadow:0 4px 22px #3df8c326;
+      min-width:310px;max-width:97vw;width:370px;display:flex;flex-direction:column;align-items:center;
+    }
+    .task-form {display:flex;gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:15px;}
+    .task-form input[type=text] {font-size:1em;padding:6px 9px;border-radius:7px;width:120px;border:1.3px solid #e4d1b1;}
+    .task-form input[type=date]{font-size:1em;padding:6px 9px;border-radius:7px;border:1.3px solid #c0e3ff;}
+    .task-form select {
+      font-size:1em;padding:6px 9px;border-radius:7px;border:1.3px solid #ffd0b7;
+    }
+    .task-form button {
+      background:#f8704b;color:#fff;font-weight:700;border:none;
+      border-radius:7px;padding:7px 18px;cursor:pointer;transition:background .14s;}
+    .task-form button:hover {background:#be4809;}
+    .tasks-list {width:100%;margin:10px 0 6px 0;}
+    .task {
+      background:#fffbe7;border-radius:11px;box-shadow:0 2px 11px #ffe4b395;
+      padding:10px 13px 8px 13px;display:flex;align-items:center;gap:9px;
+      margin-bottom:9px;position:relative;animation:fadein .48s;
+      font-size:1.07em;transition:background .12s;
+    }
+    .task.done {text-decoration:line-through;opacity:0.56;background:#e9ebeb;}
+    .task-pri {width:17px;font-size:1.27em;}
+    .task-title {flex:1;}
+    .task-date {min-width:79px;font-size:.99em;color:#289;}
+    .task button {
+      background:#ffecc4;color:#b73f46;border:none;border-radius:7px;padding:4px 10px;cursor:pointer;font-weight:600;
+      margin-left:4px;font-size:.95em;transition:background .12s;}
+    .task button:hover {background:#fde7f2;}
+    .footer{margin:23px 0 9px 0;text-align:center;opacity:.37;font-size:.98em;}
+    @keyframes fadein{0%{opacity:0;transform:scale(.92);}100%{opacity:1;transform:scale(1);}}
+    @media(max-width:430px){.main-box{padding:9px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>📝 Priority Task List</h1>
+  <div class="main-box">
+    <form class="task-form" id="taskForm" autocomplete="off">
+      <input type="text" id="desc" maxlength="60" placeholder="Task..." required>
+      <input type="date" id="due">
+      <select id="pri">
+        <option>Low</option><option>Normal</option><option>High</option>
+      </select>
+      <button type="submit">Add</button>
+    </form>
+    <div class="tasks-list" id="tasks"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Prioritized, scheduled, and persistent in-browser</div>
+  <script>
+    function getTasks(){return JSON.parse(localStorage.ptasks||'[]');}
+    function setTasks(d){localStorage.ptasks=JSON.stringify(d);}
+    function render(){
+      let d=getTasks();
+      d.sort((a,b)=>b.pri-b.pri||((a.due||"")>(b.due||"")?1:-1));
+      document.getElementById('tasks').innerHTML =
+        d.map((t,i)=>`<div class="task${t.done?' done':''}">
+          <span class="task-pri">${["🟢","🟡","🔴"][t.pri]}</span>
+          <span class="task-title">${t.desc}</span>
+          <span class="task-date">${t.due||(t.done&&!t.due?"":'')}</span>
+          <button onclick="toggleDone(${t.id})">${t.done?"↩️":"✔️"}</button>
+          <button onclick="delTask(${t.id})">&times;</button>
+        </div>`).join("")||"<div style='color:#b37;text-align:center;'>No tasks yet.</div>";
+    }
+    document.getElementById('taskForm').onsubmit = function(e){
+      e.preventDefault();
+      let pri = ['Low','Normal','High'].indexOf(this.pri.value);
+      let d = getTasks();
+      d.push({id:Date.now(),desc:this.desc.value,pri,done:false,due:this.due.value});
+      setTasks(d); this.reset();render();
+    }
+    window.delTask = function(id){
+      setTasks(getTasks().filter(t=>t.id!==id));render();
+    }
+    window.toggleDone = function(id){
+      let d = getTasks(), t=d.find(x=>x.id===id);
+      if(t)t.done=!t.done;setTasks(d);render();
+    }
+    render();
+  </script>
+</body>
+</html>
