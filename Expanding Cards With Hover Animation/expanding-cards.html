@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Expanding Cards Hover UI Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      min-height:100vh; margin:0;
+      background: linear-gradient(120deg,#fbc2eb 0%, #a6c1ee 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display:flex; flex-direction:column; align-items:center; color:#25304d;
+    }
+    h1 { margin:38px 0 13px 0; font-size:2.17rem; color:#6946b0; }
+    .cards-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+      justify-content: center;
+      margin: 15px auto 0 auto;
+      max-width: 880px;
+      width: 98vw;
+      min-height: 240px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 18px #753bfb18;
+      overflow: hidden;
+      position: relative;
+      flex: 1 1 90px;
+      min-width: 98px;
+      max-width: 240px;
+      max-height: 290px;
+      height: 240px;
+      cursor:pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      transition: flex-basis 0.45s cubic-bezier(.23,1.62,.77,1.48), box-shadow .22s, background .21s;
+    }
+    .card .imgbox {
+      width: 54px; height:54px;
+      border-radius:14px;
+      margin-top:32px;
+      margin-bottom:-8px;
+      background: #f3eafd;
+      box-shadow:0 2px 14px #ad8fff21;
+      display: flex; align-items: center; justify-content: center;
+      font-size:2.18em;
+      transition: background .18s;
+    }
+    .card .title {
+      font-size:1.16em;
+      font-weight:700;
+      color:#7348fb;
+      margin:18px 0 4px 0;
+      transition: color .16s;
+    }
+    .card .desc {
+      opacity: 0;
+      max-height: 0;
+      transition: opacity .38s, max-height .36s;
+      margin: 0 12px;
+      font-size:1.03em;
+      color:#948ea1;
+    }
+    .card.expanded {
+      flex-basis: 270px;
+      background:#f8e4f7;
+      box-shadow:0 8px 32px #a691ff75;
+    }
+    .card.expanded .desc {
+      opacity: 1; max-height: 70px;
+      margin: 11px 12px 11px 12px;
+    }
+    .card.expanded .title {
+      color:#ba40b1;
+    }
+    .card.expanded .imgbox {
+      background:#fff5e3;
+    }
+    .footer{margin:21px 0 6px 0;text-align:center;opacity:.38;font-size:.96em;}
+    @media(max-width:600px){
+      .cards-row{flex-direction:column;min-height:unset;}
+      .card{min-width:0;max-width:99vw;width:100%;height:95px;}
+      .card.expanded{height:205px;}
+    }
+  </style>
+</head>
+<body>
+  <h1>✨ Expanding Cards UI</h1>
+  <div class="cards-row" id="cardsRow">
+    <div class="card expanded">
+      <div class="imgbox">🌅</div>
+      <div class="title">Sunrise</div>
+      <div class="desc">Start your day with inspiration! Sunrise brings hope and beauty every morning.</div>
+    </div>
+    <div class="card">
+      <div class="imgbox">🌳</div>
+      <div class="title">Nature</div>
+      <div class="desc">Breathe in the fresh air and enjoy the peacefulness of trees and parks everywhere.</div>
+    </div>
+    <div class="card">
+      <div class="imgbox">🎨</div>
+      <div class="title">Creativity</div>
+      <div class="desc">Unleash your imagination with colors, brushstrokes, and design beyond limits.</div>
+    </div>
+    <div class="card">
+      <div class="imgbox">🚀</div>
+      <div class="title">Launch</div>
+      <div class="desc">Take off with exciting new ideas and ambitious goals—dream big and fly high!</div>
+    </div>
+    <div class="card">
+      <div class="imgbox">☕</div>
+      <div class="title">Coffee</div>
+      <div class="desc">Enjoy that daily cup of energy—a simple joy, an aromatic ritual, and a spark for your mind.</div>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Responsive, animated, and ready for customization</div>
+  <script>
+    // Expand logic
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card=>{
+      card.addEventListener('mouseenter',()=>expand(card));
+      card.addEventListener('focus',()=>expand(card));
+      card.addEventListener('click',()=>expand(card));
+      card.setAttribute('tabindex','0');
+    });
+    function expand(card) {
+      cards.forEach(c=>c.classList.remove('expanded'));
+      card.classList.add('expanded');
+    }
+    // Touch: tap to expand
+    let lastTap = 0;
+    cards.forEach(card=>{
+      card.addEventListener('touchstart',e=>{
+        let now = Date.now();
+        if(now-lastTap<530){ expand(card); }
+        lastTap=now;
+      });
+    });
+  </script>
+</body>
+</html>
