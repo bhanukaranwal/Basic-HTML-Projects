@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>World Clock Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#b7e0fc 0%,#f9eabf 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#232842;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:36px 0 14px 0;font-size:2.13rem;color:#1675ea;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:27px 17px 14px 17px;
+      border-radius:15px;box-shadow:0 4px 22px #b7e0fc3c;margin-bottom:15px;
+      width:99vw;max-width:510px;display:flex;flex-direction:column;align-items:center;
+    }
+    .add-row {display:flex;gap:8px;margin-bottom:17px;align-items:center;}
+    .add-row input {
+      font-size:1em;padding:7px 10px;border-radius:7px;border:1.2px solid #b7e0fc; min-width:130px;
+    }
+    .add-row button {
+      background:#1675ea;color:#fff;font-weight:700;border:none;
+      border-radius:7px;padding:7px 16px;cursor:pointer;transition:background .13s;}
+    .add-row button:hover {background:#374cc2;}
+    .clocks {display:flex;flex-wrap:wrap;gap:18px;justify-content:center;}
+    .clock-card {
+      background:#fcfbe7;border-radius:15px;box-shadow:0 2px 12px #bcbc7b44;
+      padding:14px 22px 12px 22px;min-width:130px;text-align:center;position:relative;
+      transition:box-shadow .14s, background .11s;animation:fadein .5s;
+    }
+    .clock-city {font-weight:700;color:#1e62af;font-size:1.13em;}
+    .clock-time {font-family:Consolas,monospace;font-size:1.25em;color:#db5283;margin:9px 0 2px 0;}
+    .clock-date {font-size:.98em;color:#8ba083;letter-spacing:.02em;}
+    .del-btn {background:none;border:none;color:#b35650;cursor:pointer;font-size:1.25em;position:absolute;top:6px;right:9px;border-radius:7px;transition:background .1s;}
+    .del-btn:hover {background:#f7e1e7;}
+    .footer{margin:21px 0 8px 0;text-align:center;opacity:.36;font-size:.98em;}
+    @keyframes fadein{0%{opacity:0;transform:scale(.92);}100%{opacity:1;transform:scale(1);}}
+    @media(max-width:690px){.main-box{max-width:99vw;}.clocks{gap:9px;}.clock-card{padding:11px 4vw 9px 4vw;}}
+    @media(max-width:410px){.clock-card{min-width:88px;}}
+  </style>
+</head>
+<body>
+  <h1>🌎 World Clock Dashboard</h1>
+  <div class="main-box">
+    <div class="add-row">
+      <input list="cities" id="cityInput" placeholder="Search or enter city..." autocomplete="off">
+      <button onclick="addCity()">Add Clock</button>
+      <datalist id="cities"></datalist>
+    </div>
+    <div class="clocks" id="clocks"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Add/remove as many clocks as you want!</div>
+  <script>
+    // List of representative world cities (subset, can expand)
+    const CITIES = [
+      {name:"New York, US", tz:"America/New_York"},
+      {name:"London, UK", tz:"Europe/London"},
+      {name:"Berlin, DE", tz:"Europe/Berlin"},
+      {name:"Tokyo, JP", tz:"Asia/Tokyo"},
+      {name:"Beijing, CN", tz:"Asia/Shanghai"},
+      {name:"Sydney, AU", tz:"Australia/Sydney"},
+      {name:"Dubai, AE", tz:"Asia/Dubai"},
+      {name:"Johannesburg, ZA", tz:"Africa/Johannesburg"},
+      {name:"Moscow, RU", tz:"Europe/Moscow"},
+      {name:"Rio de Janeiro, BR", tz:"America/Sao_Paulo"},
+      {name:"Los Angeles, US", tz:"America/Los_Angeles"},
+      {name:"Mexico City, MX", tz:"America/Mexico_City"},
+      {name:"Toronto, CA", tz:"America/Toronto"},
+      {name:"Paris, FR", tz:"Europe/Paris"},
+      {name:"Delhi, IN", tz:"Asia/Kolkata"},
+      {name:"Singapore, SG", tz:"Asia/Singapore"}
+    ];
+    CITIES.forEach(c=>{
+      let opt=document.createElement('option');
+      opt.value=c.name;
+      document.getElementById('cities').appendChild(opt);
+    });
+    function getClocks(){return JSON.parse(localStorage.myClocks||'[]');}
+    function setClocks(d){localStorage.myClocks=JSON.stringify(d);}
+    function findCity(name){
+      name=name.trim();
+      let c = CITIES.find(c=>c.name.toLowerCase()===name.toLowerCase());
+      if(c) return c;
+      // Try best guess + fallback to input name in browser local tz
+      return {name,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'};
+    }
+    function render(){
+      let d=getClocks(), clk=document.getElementById('clocks');
+      clk.innerHTML = d.map((c,i)=>
+        `<div class="clock-card">
+          <button class="del-btn" onclick="delClock(${i})">&times;</button>
+          <div class="clock-city">${c.name}</div>
+          <div class="clock-time" id="tm${i}">...</div>
+          <div class="clock-date" id="dt${i}"></div>
+        </div>`
+      ).join('')||"<div style='color:#b37;text-align:center;'>No clocks. Add cities above.</div>";
+      updateTimes();
+    }
+    function updateTimes(){
+      let d=getClocks();
+      d.forEach((c,i)=>{
+        let now=new Date();
+        let options={hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:c.tz};
+        let time=new Intl.DateTimeFormat('en-US',options).format(now);
+        let dopt={weekday:'short', month:'short', day:'2-digit', year:'numeric', timeZone:c.tz};
+        let dstr=new Intl.DateTimeFormat('en-US',dopt).format(now);
+        document.getElementById('tm'+i)&&(document.getElementById('tm'+i).textContent=time);
+        document.getElementById('dt'+i)&&(document.getElementById('dt'+i).textContent=dstr);
+      });
+    }
+    function addCity(){
+      let val=document.getElementById('cityInput').value.trim();
+      if(!val) return;
+      let c=findCity(val);
+      let clocks=getClocks();
+      if(clocks.find(e=>e.name.toLowerCase()===c.name.toLowerCase())) return; // no duplicates
+      clocks.push(c); setClocks(clocks); document.getElementById('cityInput').value=''; render();
+    }
+    window.delClock = function(i){ let c=getClocks();c.splice(i,1);setClocks(c);render(); }
+    // Every second update
+    setInterval(updateTimes,1000);
+    render();
+  </script>
+</body>
+</html>
