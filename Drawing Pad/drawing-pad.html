@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drawing Pad</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#fff1f1 0%,#c7eefc 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#223343;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:32px 0 10px 0;font-size:2.12rem;color:#1fa7b3;}
+    .main-box {
+      background:rgba(255,255,255,0.96);padding:21px 9px 14px 9px;
+      border-radius:15px;box-shadow:0 4px 18px #3bb8e67c;margin-bottom:14px;
+      display:flex;flex-direction:column;align-items:center;
+      width:99vw;max-width:370px;
+    }
+    .toolbar {display:flex;gap:13px;align-items:center;justify-content:center;margin-bottom:13px;}
+    .colors {display:flex;gap:5px;}
+    .col-btn {
+      width:29px;height:29px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 6px #b6e7fc;cursor:pointer;outline:none;
+      margin:0;transition:border .12s;
+    }
+    .col-btn.selected {border:2.5px solid #36bdd5;}
+    .range-row {display:flex;align-items:center;gap:5px;}
+    .size-label {color:#30b690;font-size:.98em;}
+    .pad-box{background:#ddefff;border-radius:12px;box-shadow:0 2px 14px #b9e9ef33;}
+    canvas{display:block;width:320px;height:240px;border-radius:12px;}
+    .btns {margin:8px 0 2px 0;display:flex;gap:12px;}
+    .big-btn {
+      background:#55d0e1;color:#fff;font-weight:700;border:none;border-radius:8px;
+      padding:7px 16px;cursor:pointer;transition:background .13s;}
+    .big-btn:hover {background:#1897a3;}
+    .footer{margin:19px 0 7px 0;text-align:center;opacity:.36;font-size:.98em;}
+    @media (max-width:350px){canvas{width:98vw;}}
+  </style>
+</head>
+<body>
+  <h1>🎨 Drawing Pad</h1>
+  <div class="main-box">
+    <div class="toolbar">
+      <div class="colors" id="colors">
+        <button class="col-btn selected" style="background:#000000" data-col="#000000"></button>
+        <button class="col-btn" style="background:#e52243" data-col="#e52243"></button>
+        <button class="col-btn" style="background:#23aecd" data-col="#23aecd"></button>
+        <button class="col-btn" style="background:#31c543" data-col="#31c543"></button>
+        <button class="col-btn" style="background:#f8b014" data-col="#f8b014"></button>
+        <button class="col-btn" style="background:#fff" data-col="#fff"></button>
+      </div>
+      <div class="range-row">
+        <span class="size-label">Size</span>
+        <input type="range" id="size" min="2" max="18" value="5">
+      </div>
+    </div>
+    <div class="pad-box"><canvas id="pad" width="320" height="240"></canvas></div>
+    <div class="btns">
+      <button class="big-btn" onclick="clearPad()">Clear</button>
+      <button class="big-btn" onclick="saveImg()">Save</button>
+    </div>
+    <a id="download" style="display:none;">Download</a>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Draw, doodle, save as PNG</div>
+  <script>
+    // --- Drawing logic
+    const cv=document.getElementById('pad'),ctx=cv.getContext('2d');
+    let drawing=false,last=[0,0],color="#000",size=5;
+    ctx.lineJoin=ctx.lineCap="round";
+    cv.addEventListener('mousedown',e=>{drawing=true;last=pt(e)});
+    cv.addEventListener('touchstart',e=>{drawing=true;last=pt(e.touches[0])});
+    document.addEventListener('mouseup',()=>drawing=false);
+    cv.addEventListener('mouseleave',()=>drawing=false);
+    document.addEventListener('touchend',()=>drawing=false);
+    cv.addEventListener('mousemove',draw);
+    cv.addEventListener('touchmove',function(e){if(drawing){draw(e.touches[0]);e.preventDefault();}});
+    function pt(e){
+      const rect=cv.getBoundingClientRect();
+      return [(e.clientX||e.touches?.[0]?.clientX)-rect.left,(e.clientY||e.touches?.[0]?.clientY)-rect.top];
+    }
+    function draw(e){
+      if(!drawing)return;
+      let p=pt(e);
+      ctx.strokeStyle=color;ctx.lineWidth=size;
+      ctx.beginPath();ctx.moveTo(...last);ctx.lineTo(...p);ctx.stroke();
+      last=p;
+    }
+    // --- Toolbar events
+    document.getElementById('colors').onclick = function(e){
+      if(e.target.dataset.col){
+        color = e.target.dataset.col;
+        document.querySelectorAll('.col-btn').forEach(b=>b.classList.remove('selected'));
+        e.target.classList.add('selected');
+      }
+    };
+    document.getElementById('size').oninput = function(){size=+this.value;};
+    window.clearPad = function(){ctx.clearRect(0,0,cv.width,cv.height);};
+    window.saveImg = function(){
+      let link=document.getElementById('download');
+      link.href=cv.toDataURL("image/png");
+      link.download = "drawing.png";
+      link.style.display="inline";
+      link.textContent="Download saved image";
+      setTimeout(()=>{link.style.display="none";},2000);
+      link.click();
+    };
+    // Fill white bg for PNG
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);
+  </script>
+</body>
+</html>
