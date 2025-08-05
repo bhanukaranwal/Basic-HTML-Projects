@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sticky Notes Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body { height:100%; margin:0; padding:0; }
+    body {
+      min-height:100vh;
+      background:linear-gradient(120deg,#fff9e4 0%, #afeaff 100%);
+      font-family:'Segoe UI',Arial,sans-serif;
+      overflow:hidden;
+      user-select:none;
+    }
+    h1 { text-align:center; color:#faaa50; margin:20px 0 10px 0; font-weight:700;}
+    .board {
+      position:relative; width:100vw;height:85vh; background:none;
+    }
+    .add-btn {
+      background:#faf17e; color:#ad7000; font-weight:700; border:none; border-radius:10px;
+      font-size:1.07em; padding:9px 22px; cursor:pointer; position:fixed;top:25px;right:24px;z-index:90;
+      box-shadow:0 3px 15px #c1d80925;transition:background .13s;
+    }
+    .add-btn:hover { background:#ffe154; }
+    .note {
+      position:absolute;
+      min-width:120px; min-height:85px;max-width:260px;
+      border-radius:11px;
+      box-shadow:0 7px 17px #caa27862;
+      padding:13px 14px 21px 14px;
+      word-break:break-word;
+      font-size:1.04em;
+      z-index:10;
+      cursor:move;
+      animation:pop .38s;
+      filter:drop-shadow(0px 2px 8px #efdd5f35);
+      transition:box-shadow .13s,background .16s;
+    }
+    .note:active { box-shadow:0 12px 27px #eebd4375; }
+    .note textarea {
+      width:96%; height:59px; font-family:inherit; font-size:1em; border:none; border-radius:7px;
+      background:rgba(255,255,255,0.52); outline:none; resize:vertical; color:#3d2d13;
+      margin:0;padding:3px;box-shadow:none;
+    }
+    .del-btn {
+      position:absolute;top:6px;right:9px;
+      background:none;border:none;color:#d37a29;font-size:1.2em;cursor:pointer;border-radius:5px;z-index:90;
+    }
+    .del-btn:hover{background:#fff0d7;}
+    @keyframes pop{0%{transform:scale(.86);opacity:0;}100%{transform:scale(1);opacity:1;}}
+    .footer{position:fixed;bottom:5px;width:100vw;text-align:center;opacity:.35;font-size:.96em;}
+    @media(max-width:550px){.note{font-size:.98em;max-width:90vw;padding:7px 5vw 21px 5vw;}}
+  </style>
+</head>
+<body>
+  <h1>📝 Sticky Notes Board</h1>
+  <button class="add-btn" onclick="addNote()">+ Note</button>
+  <div class="board" id="board"></div>
+  <div class="footer">All-in-one HTML by YourName · Notes and positions saved in your browser</div>
+  <script>
+    const COLORS=["#fffda1","#a8fae3","#fbdfb0","#faaceb","#b2eaff","#fed2d2"];
+    function getNotes() { return JSON.parse(localStorage.stickyNotesApp||"[]"); }
+    function setNotes(d) { localStorage.stickyNotesApp = JSON.stringify(d); }
+    function randomColor() { return COLORS[Math.floor(Math.random()*COLORS.length)]; }
+    function render() {
+      let notes = getNotes(), board = document.getElementById('board');
+      board.innerHTML = '';
+      notes.forEach((n,i) => {
+        let el = document.createElement('div');
+        el.className = "note";
+        el.style.left = (n.x||30)+'px';
+        el.style.top = (n.y||48)+'px';
+        el.style.background = n.color;
+        el.innerHTML = `
+          <button class="del-btn" onclick="delNote(${n.id})">&times;</button>
+          <textarea oninput="editNote(${n.id},this.value)">${n.text}</textarea>
+        `;
+        el.onmousedown = function(e) { dragStart(e, n.id); };
+        board.appendChild(el);
+      });
+    }
+    function addNote() {
+      let notes = getNotes();
+      notes.push({id:Date.now(),text:"",x:45+Math.random()*200,y:54+Math.random()*90,color:randomColor()});
+      setNotes(notes); render();
+    }
+    window.delNote = function(id) {
+      let notes = getNotes().filter(n=>n.id!==id);
+      setNotes(notes); render();
+    };
+    window.editNote = function(id, val) {
+      let notes = getNotes();
+      let n = notes.find(n=>n.id===id); if(n) n.text = val;
+      setNotes(notes);
+    };
+    // --- Drag functionality ---
+    let dragId, offsetX, offsetY;
+    function dragStart(e, id) {
+      let notes = getNotes(), n=notes.find(n=>n.id===id);
+      if(!n) return;
+      dragId = id;
+      offsetX = e.clientX - n.x;
+      offsetY = e.clientY - n.y;
+      document.onmousemove = dragMove;
+      document.onmouseup = dragEnd;
+    }
+    function dragMove(e) {
+      if(dragId==null) return;
+      let notes = getNotes(), n=notes.find(n=>n.id===dragId);
+      if(!n) return;
+      n.x = Math.max(10, Math.min(window.innerWidth-150, e.clientX - offsetX));
+      n.y = Math.max(10, Math.min(window.innerHeight-110, e.clientY - offsetY));
+      setNotes(notes); render();
+    }
+    function dragEnd() { dragId = null; document.onmousemove = null; document.onmouseup = null; }
+    render();
+  </script>
+</body>
+</html>
