@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Math Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      font-family: 'Segoe UI', Arial, sans-serif; margin: 0; min-height: 100vh; }
+    h1 { text-align: center; margin: 26px 0 12px 0; font-size: 2.1rem; color: #346fc7; }
+    .main-box {
+      background: rgba(255,255,255,0.94); border-radius: 17px; box-shadow: 0 4px 18px #aaa2; 
+      max-width: 420px; margin: 0 auto; padding: 28px 22px 20px 22px;
+    }
+    label { font-weight: 600; display: block; }
+    input[type="text"], select, input[type="range"] {
+      width: 100%; border-radius: 6px; padding: 6px 8px;
+      border: 1px solid #b4d0e5; font-size: 1.05rem; margin: 5px 0 10px 0;
+    }
+    .controls { margin-bottom: 8px; }
+    #canvasWrap { background: #222a36; border-radius: 11px; box-shadow: 0 3px 14px #0132; margin: 0 0 12px 0; }
+    .guide { font-size:0.98rem; color: #25416b; margin-bottom:12px; }
+    .xs{text-align: center;font-size:0.97rem;opacity:0.6;margin-top: 7px;}
+    .footer{margin:29px 0 10px 0;text-align:center;opacity:0.4;font-size:0.98rem;}
+    @media(max-width:470px){
+      .main-box{padding: 8px 3vw 8px 3vw;}
+      #grapher{max-width: 92vw;}
+    }
+  </style>
+</head>
+<body>
+  <h1>📈 Live Math Visualizer</h1>
+  <div class="main-box">
+    <div class="guide">
+      Type a function of <b>x</b> (e.g. <code>sin(x)</code>, <code>x<sup>2</sup></code>, <code>log(x+2)</code>, <code>abs(x)</code>) and watch it animate!<br>
+      You can change the range, expression, and animation speed.
+    </div>
+    <form id="exprForm" autocomplete="off">
+      <label>Math Function: <input type="text" id="expr" value="sin(x)" required placeholder="e.g. x*x-4"/></label>
+      <label>
+        X-axis Range: 
+        <span id="xminview">−10</span> to <span id="xmaxview">10</span><br>
+        <input type="range" min="-20" max="0" value="-10" id="xmin" style="width:46%;">&nbsp;
+        <input type="range" min="1" max="20" value="10" id="xmax" style="width:46%;">
+      </label>
+      <label>
+        Animation: 
+        <select id="anim">
+          <option value="draw">Draw curve</option>
+          <option value="move">Move window</option>
+          <option value="pulse">Pulse</option>
+        </select>
+        <span class="xs">Speed: <input type="range" min="1" max="10" value="5" id="speed" style="width:30%;"></span>
+      </label>
+      <button type="submit" class="btn" style="margin-top:7px;background:#a5cfef;color:#194779;font-weight:600;padding:7px 19px;border-radius:7px;border:none;cursor:pointer;">Visualize</button>
+    </form>
+    <div id="canvasWrap"><canvas id="grapher" width="380" height="210"></canvas></div>
+    <div class="xs">Errors or undefined regions will appear blank.</div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Powered by <code>Math.js</code>-style evaluation (<b>no dependency</b>)</div>
+  <script>
+    // ---- Expression Evaluator (safe subset, no dep) ----
+    function safeEval(expr, x) {
+      try {
+        let val = Function("x", `with(Math){return ${expr.replace(/[^-+/*%^()<>\w|&., ?:=]|Math\./g, m=>
+          { return {'π':'PI','√':'sqrt','^':'**'}[m] || '' })};}`)(x);
+        if (typeof val !== 'number' || !isFinite(val)) return NaN;
+        return val;
+      } catch { return NaN; }
+    }
+    // ---- State, Elements ----
+    let expr = "sin(x)", xmin = -10, xmax = 10, mode = "draw", speed = 5, step=0;
+    const canvas = document.getElementById("grapher"), 
+          ctx = canvas.getContext("2d"),
+          exprInp=document.getElementById("expr"),
+          xminS = document.getElementById("xmin"),
+          xmaxS = document.getElementById("xmax"),
+          xminview=document.getElementById("xminview"),
+          xmaxview=document.getElementById("xmaxview"),
+          animSel=document.getElementById("anim"),
+          speedInp=document.getElementById("speed");
+    // ---- Handlers ----
+    document.getElementById("exprForm").onsubmit = function(e){
+      e.preventDefault();
+      expr = exprInp.value; step=0;
+      drawAnim();
+    }
+    xminS.oninput = function(){ xmin=+xminS.value; xminview.textContent=xmin; if(xmin>=xmax){xmin=xmax-1;xminS.value=xmin;} drawAnim();}
+    xmaxS.oninput = function(){ xmax=+xmaxS.value; xmaxview.textContent=xmax; if(xmax<=xmin){xmax=xmin+1;xmaxS.value=xmax;} drawAnim();}
+    animSel.oninput = function(){ mode=this.value; step=0; drawAnim(); }
+    speedInp.oninput = function(){ speed=+this.value; }
+    // ---- Drawing ----
+    function drawExprCurve(expr, xmin, xmax, animProgress=1) {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // Grid
+      ctx.strokeStyle="#b7cde7";ctx.lineWidth=1;
+      for(let i=0;i<=10;++i){
+        let yy=i*canvas.height/10;
+        ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(canvas.width,yy);ctx.stroke();
+      }
+      // Axes
+      let x0 = -xmin/(xmax-xmin)*canvas.width;
+      let y0 = canvas.height/2;
+      ctx.strokeStyle="#224488"; ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0,canvas.height);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(canvas.width,y0);ctx.stroke();
+      // Plot
+      ctx.save();
+      ctx.beginPath();
+      let N = 600;
+      for(let i=0;i<N*animProgress;++i){
+        let x = xmin+(xmax-xmin)*(i/N), y = safeEval(expr, x);
+        let sx = (x-xmin)/(xmax-xmin)*canvas.width;
+        let sy = canvas.height/2 - y*(canvas.height/20);
+        if (!isNaN(y) && isFinite(y)){
+          if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+        }
+      }
+      ctx.strokeStyle="#1d90f7"; ctx.lineWidth=2.5; ctx.shadowColor="#82e1ff"; ctx.shadowBlur=8; ctx.stroke();
+      ctx.restore();
+    }
+    // ---- Main Animation ----
+    function drawAnim(){
+      let animProgress = 1;
+      if(mode=="draw"){ animProgress = Math.min(1, step/40); }
+      else if(mode=="move") {
+        let shift = Math.sin(step/30)*4;
+        drawExprCurve(expr, xmin+shift, xmax+shift, 1); step+=speed; requestAnimationFrame(drawAnim); return;
+      }
+      else if(mode=="pulse") {
+        let scale = 1 + 0.4*Math.sin(step/15);
+        drawExprCurve(expr, xmin, xmax, scale); step+=speed; requestAnimationFrame(drawAnim); return;
+      }
+      drawExprCurve(expr, xmin, xmax, animProgress);
+      if(animProgress<1){ step++; requestAnimationFrame(drawAnim); }
+    }
+    drawAnim();
+  </script>
+</body>
+</html>
