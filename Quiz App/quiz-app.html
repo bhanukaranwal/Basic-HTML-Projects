@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QuizMaster – Interactive Quiz App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg,#f7e8fb 0%, #bae1fc 100%);
+      color: #31324a; font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh; margin: 0;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { margin-top:35px; font-size:2.2rem; letter-spacing:1px; color:#8442c8;}
+    .main-box {
+      background: rgba(255,255,255,0.97); padding:28px 20px 15px 20px;
+      border-radius: 13px; box-shadow: 0 4px 20px #985de71a;
+      width:97vw; max-width:410px; margin-bottom:18px;
+    }
+    .question { font-size:1.12em;font-weight:700; color:#3b328c; margin:12px 0 17px 0;}
+    .options { display:flex; flex-direction:column; gap:12px; }
+    .opt-btn {
+      background: #e1eafd; color: #5b32a3; font-size:1em; font-weight:600; border:none; border-radius:8px;
+      padding: 9px 10px; cursor:pointer; transition: background .16s, color .12s;
+    }
+    .opt-btn:hover { background: #c7adef; color:#fff;}
+    .opt-btn.correct { background: #9beab9; color:#183f2a;}
+    .opt-btn.incorrect { background: #f5a2a2; color:#9b2222;}
+    .meta {margin: 13px 0 7px 0; color:#b477e7;font-size:.98em;}
+    .feedback {margin:8px 0 3px 0;font-weight:600;}
+    .score-bar{background:#ede2fc;border-radius:7px;padding:10px 17px;font-size:1.09em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+    .leaderboard {
+      background:#f9f8ff; margin:13px 0 0 0; border-radius:11px;box-shadow:0 2px 7px #985de718;padding:10px 12px;
+      font-size:1.08em;text-align:left;
+    }
+    .footer{margin:20px 0 7px 0;text-align:center;opacity:0.39;font-size:0.99rem;}
+    @media(max-width:410px){.main-box{padding:10px 2vw 8px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🧠 QuizMaster</h1>
+  <div class="main-box">
+    <div class="score-bar">
+      <span>Score: <b id="score">0</b></span>
+      <span>Streak: <b id="streak">0</b></span>
+      <span><b id="progress">1</b>/10</span>
+    </div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="meta">
+      <button onclick="nextQuestion()" id="nextBtn" style="display:none;background:#ae82e3;color:#fff;font-weight:700;
+      padding:6px 22px; border-radius:7px;border:none;">Next</button>
+      <button onclick="restartQuiz()" id="restartBtn" style="display:none;background:#ae82e3;color:#fff;font-weight:700;
+      padding:6px 22px; border-radius:7px;border:none;">Restart</button>
+      <button onclick="saveScore()" id="saveBtn" style="display:none;background:#6db8ea;color:#181d28;font-weight:700;
+      padding:6px 22px; border-radius:7px;border:none;">Save to Leaderboard</button>
+    </div>
+    <div class="leaderboard">
+      <b>🏆 Leaderboard</b>
+      <ol id="lb" style="margin:7px 0 0 25px;font-size:1em;"></ol>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Scores are saved to your browser</div>
+  <script>
+    // Sample Quiz Data (add more questions as you like)
+    const QUESTIONS = [
+      {q:"What is the capital of Japan?", opts:["Kyoto","Osaka","Tokyo","Nagoya"], a:2},
+      {q:"2 + 2 × 2 = ?", opts:["6","8","4","12"], a:0},
+      {q:"What HTML tag is used for hyperlink?", opts:["<a>","<h1>","<p>","<div>"], a:0},
+      {q:"Which planet is called the Red Planet?", opts:["Venus","Mars","Jupiter","Saturn"], a:1},
+      {q:"Which is not a JavaScript data type?", opts:["string","number","bool","object"], a:2},
+      {q:"Who wrote 'Romeo and Juliet'?", opts:["Tolstoy","Shakespeare","Dickens","Austen"], a:1},
+      {q:"CSS stands for?", opts:["Computer Style Sheets","Cascading Style Sheets","Creative Style Syntax","Colorful Style Sheets"], a:1},
+      {q:"Which symbol is for single-line comment in JS?", opts:["//","#","<!--","/*"], a:0},
+      {q:"What does API stand for?", opts:["Application Programming Interface","Advanced Program Integration","Applied Program Innovation","Advanced Page Index"], a:0},
+      {q:"Which is a mammal?", opts:["Shark","Eagle","Whale","Snake"], a:2}
+    ];
+    let idx=0, score=0, streak=0, blocked=false, total=QUESTIONS.length;
+
+    function showLeaderboard(){
+      let records = JSON.parse(localStorage.getItem("quizLeader")||"[]");
+      let lb = document.getElementById("lb");
+      lb.innerHTML = records.map(r=>`<li>${r.score} pts, Streak: ${r.streak}</li>`).join("");
+    }
+    function updateBar(){
+      document.getElementById("score").textContent=score;
+      document.getElementById("streak").textContent=streak;
+      document.getElementById("progress").textContent=idx+1>total?total:idx+1;
+    }
+    function showQuestion(){
+      blocked=false; document.getElementById("feedback").textContent="";
+      updateBar();
+      let q=QUESTIONS[idx], qDiv=document.getElementById("question"), optsDiv=document.getElementById("options");
+      qDiv.textContent = q.q; optsDiv.innerHTML="";
+      q.opts.forEach((opt,i)=>{
+        let btn = document.createElement("button");
+        btn.className="opt-btn";
+        btn.textContent=opt;
+        btn.onclick=()=>selectOpt(i);
+        optsDiv.appendChild(btn);
+      });
+      document.getElementById("nextBtn").style.display="none";
+      document.getElementById("restartBtn").style.display="none";
+      document.getElementById("saveBtn").style.display="none";
+    }
+    function selectOpt(sel){
+      if(blocked) return;
+      blocked=true;
+      let q=QUESTIONS[idx];
+      let opts=document.querySelectorAll(".opt-btn");
+      opts.forEach((b,i)=>b.classList.remove('correct','incorrect'));
+      if(sel===q.a){
+        score+=10+2*streak; streak++;
+        opts[sel].classList.add("correct");
+        document.getElementById("feedback").textContent="✅ Correct!";
+      } else {
+        opts[sel].classList.add("incorrect");
+        opts[q.a].classList.add("correct");
+        document.getElementById("feedback").textContent=`❌ Wrong! The answer was: ${q.opts[q.a]}`;
+        streak=0;
+      }
+      if(idx<total-1)
+        document.getElementById("nextBtn").style.display="";
+      else
+        {document.getElementById("restartBtn").style.display="";
+         document.getElementById("saveBtn").style.display="";
+        }
+      updateBar();
+    }
+    function nextQuestion(){ idx++; showQuestion(); }
+    function restartQuiz(){ idx=0; score=0; streak=0; showQuestion(); }
+    function saveScore(){
+      let records = JSON.parse(localStorage.getItem("quizLeader")||"[]");
+      records.push({score, streak});
+      records.sort((a,b)=>b.score-a.score);
+      if(records.length>5)records.length=5;
+      localStorage.setItem("quizLeader",JSON.stringify(records));
+      showLeaderboard();
+      document.getElementById("saveBtn").style.display="none";
+    }
+    showLeaderboard(); showQuestion();
+  </script>
+</body>
+</html>
