@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Habit Tracker Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { background:linear-gradient(120deg,#fff1eb 0%,#ace0f9 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;
+      display:flex;flex-direction:column;align-items:center;color:#254760;}
+    h1 {margin:34px 0 12px 0;font-size:2.13rem;color:#34a69c;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:27px 17px 12px 17px;
+      border-radius:16px;box-shadow:0 4px 22px #ace0f94a;
+      width:99vw;max-width:430px;margin-bottom:20px;
+      display:flex;flex-direction:column;align-items:center;
+    }
+    .habit-row {display:flex;gap:7px;margin-bottom:19px;}
+    .habit-row input[type=text]{padding:7px 11px;border-radius:7px;font-size:1em;
+      border:1.2px solid #b0e7e9;width:127px;}
+    .habit-row button {
+      background:#25b489;color:#fff;font-weight:700;border:none;
+      border-radius:7px;padding:7px 15px;cursor:pointer;transition:background .14s;}
+    .habit-row button:hover{background:#11846c;}
+    .cal-header {display:flex;justify-content:space-between;width:100%;align-items:center;}
+    .month-btn {
+      background:none;border:none;color:#34a69c;font-size:1.4em;cursor:pointer;border-radius:7px;padding:2px 13px;transition:background .14s;}
+    .month-btn:hover{background:#f2fbfd;}
+    .month-lbl {font-size:1.1em;font-weight:700;padding:3px 14px;color:#228080;}
+    .calendar {
+      display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;margin:9px 0;
+    }
+    .cal-day, .cal-head {
+      text-align:center;padding:9px 0;border-radius:7px;user-select:none;
+      font-size:1.05em;font-weight:500;
+    }
+    .cal-head {color:#47b7be;}
+    .cal-day {
+      background:#ebf9f7;color:#558189;cursor:pointer;transition:background .15s;
+      min-height:27px;border:1px solid #e2f2f8;
+    }
+    .cal-day.done {background:#86e7c3;color:#fff;font-weight:700;box-shadow:0 2px 8px #27d17d39;}
+    .cal-day.today {border:2.5px solid #25b489;}
+    .cal-day.past {background:#eef6fa;color:#c1c5c4;cursor:default;}
+    .stats {margin-top:7px;color:#276f6e;font-size:1.07em;}
+    .footer{margin:20px 0 7px 0;text-align:center;opacity:.37;font-size:.97em;}
+    @media(max-width:430px){.main-box{padding:8px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🗓️ Habit Tracker</h1>
+  <div class="main-box">
+    <form class="habit-row" id="habitForm" autocomplete="off">
+      <input id="habitName" type="text" maxlength="20" placeholder="Habit name..." required>
+      <button type="submit">Set Habit</button>
+    </form>
+    <div class="cal-header">
+      <button class="month-btn" id="prevM">&lt;</button>
+      <span class="month-lbl" id="monthLbl"></span>
+      <button class="month-btn" id="nextM">&gt;</button>
+    </div>
+    <div class="calendar" id="calendar"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Track your streaks and daily wins!</div>
+  <script>
+    // --- Model: { name, days: { "YYYY-MM": [1,2,7,...] } }
+    function getHabit(){return JSON.parse(localStorage.habitCal||'{"name":"My Habit","days":{}}');}
+    function setHabit(d){localStorage.habitCal=JSON.stringify(d);}
+    // --- Date helpers
+    let today=new Date(), curY=today.getFullYear(), curM=today.getMonth();
+    function yyyymm(y,m){return y+"-"+String(m+1).padStart(2,"0");}
+    // --- UI Rendering
+    function render(){
+      let habit=getHabit(), y=curY, m=curM, ym=yyyymm(y,m);
+      document.getElementById('habitName').value=habit.name;
+      document.getElementById('monthLbl').textContent=
+        `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m]} ${y}`;
+      // Build calendar
+      let first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+      let done=(habit.days[ym]||[]), cal = `<div class="cal-head">S</div><div class="cal-head">M</div><div class="cal-head">T</div>
+      <div class="cal-head">W</div><div class="cal-head">T</div><div class="cal-head">F</div><div class="cal-head">S</div>`;
+      let fill = (first+7)%7, tdyStr = today.toISOString().slice(0,10), streak=0, longest=0,last=0;
+      for(let i=0;i<fill;i++) cal+='<div></div>';
+      for(let d=1;d<=days;d++){
+        let isDone = done.includes(d);
+        let dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        let extra = [];
+        if(dateStr===tdyStr) extra.push('today');
+        if(isDone) extra.push('done');
+        else if(new Date(y,m,d)<today) extra.push('past');
+        cal += `<div class="cal-day ${extra.join(' ')}" data-day="${d}">${d}</div>`;
+      }
+      document.getElementById('calendar').innerHTML = cal;
+      // Set click
+      document.querySelectorAll('.cal-day').forEach(el=>{
+        let d = +el.dataset.day;
+        // Only allow today's and earlier days this month (not future)
+        let clkDate = new Date(y,m,d), allowClick = clkDate <= today && clkDate.getMonth()===today.getMonth() && clkDate.getFullYear()===today.getFullYear();
+        if(allowClick){
+          el.onclick = ()=>{
+            let h=getHabit(), dn=h.days[ym]||[];
+            if(dn.includes(d)) dn=dn.filter(x=>x!==d);
+            else dn.push(d);
+            h.days[ym]=dn; setHabit(h); render();
+          };
+        }
+      });
+      // Stats
+      // Current streak: count consecutive days from today back
+      let dn=habit.days[yyyymm(today.getFullYear(),today.getMonth())]||[], t=today.getDate(), cs=0;
+      for(let i=t;i>=1;i--)if(dn.includes(i))cs++;else break;
+      // Best streak: max consecutive
+      let ms=0, tmp=0;
+      for(let i=1;i<=today.getDate();i++){
+        if(dn.includes(i)) tmp++; else tmp=0;
+        if(tmp>ms)ms=tmp;
+      }
+      document.getElementById('stats').textContent =
+        `Current streak: ${cs} day${cs==1?"":"s"} · Best this month: ${ms} · Completed: ${dn.length} day${dn.length==1?"":"s"}`;
+    }
+    document.getElementById('habitForm').onsubmit = function(e){
+      e.preventDefault();
+      let h=getHabit();h.name=this.habitName.value.trim();setHabit(h);render();
+    }
+    document.getElementById('prevM').onclick = function(){curM--;if(curM<0){curM=11;curY--;}render();}
+    document.getElementById('nextM').onclick = function(){curM++;if(curM>11){curM=0;curY++;}render();}
+    render();
+  </script>
+</body>
+</html>
