@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MovieFinder – Animated Movie Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg, #423085 0%, #ffb199 100%);
+      color: #253143; font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    }
+    h1 {
+      font-size: 2.2rem; margin: 34px 0 14px 0; color: #ffe984; text-shadow:0 2px 10px #422;
+      letter-spacing: .7px; text-align:center;
+    }
+    .main-box {
+      background: rgba(255,255,255,0.98); padding: 26px 18px 18px 18px; border-radius: 14px;
+      box-shadow: 0 4px 22px #5a327712;
+      width: 97vw; max-width: 500px; margin-bottom: 23px;
+    }
+    form { display:flex; gap:12px; margin-bottom:17px;}
+    input[type=text] {
+      flex:1; font-size:1.12em; border-radius:8px; padding:7px 13px;
+      border: 1.5px solid #cabcf2;
+    }
+    button {
+      background: #482c92; color:#ffe469; font-weight:700; border:none; border-radius:8px;
+      padding: 7px 18px; font-size:1rem; cursor:pointer; transition: background 0.14s;
+    }
+    button:hover{background:#6c44c5;}
+    .results { display:grid; grid-template-columns:1fr 1fr; gap:17px; margin-top:7px;}
+    .movie-card {
+      background: #f7f3ff; border-radius:11px; box-shadow:0 2px 7px #d8babc45;
+      padding:10px 6px 9px 6px; transition: transform .22s, box-shadow .16s;
+      cursor:pointer; position:relative; min-height: 205px;
+      animation: fade-in .5s;
+    }
+    @keyframes fade-in { from{ opacity:0; transform:scale(0.92);} to{ opacity:1;transform:scale(1);} }
+    .movie-card:hover { box-shadow:0 8px 16px #be7dea19; transform:scale(1.045);}
+    .poster {
+      width:100%; height:164px; object-fit:cover; border-radius:7px; box-shadow:0 2px 6px #4224;
+      background:#eae1cf;
+    }
+    .title { font-weight:700; color:#384399; font-size:1.04em; text-align:center; margin:7px 0 5px 0;}
+    .year { font-size:0.95em; color:#999; text-align:center;}
+    .modal-bg {
+      position:fixed;z-index:50;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);display:none;
+      align-items:center;justify-content:center;
+    }
+    .modal { background:#fffbe7; border-radius:13px; padding:22px;box-shadow:0 4px 44px #513a43da;max-width:90vw;min-width:210px;}
+    .modal h2{margin:0 0 8px 0;font-size:1.22em;color:#c273eb;}
+    .modal .info {font-size:1.06em; color:#47346e;}
+    .close-btn{position:absolute;top:14px;right:23px;font-size:1.4em;color:#87649c;background:none;border:none;cursor:pointer;}
+    .footer{margin:18px 0 7px 0;text-align:center;font-size:0.96em;opacity:0.38;}
+    @media(max-width:470px) {
+      .results { grid-template-columns: 1fr;}
+      .main-box { padding:9px 2vw 8px 2vw;}
+    }
+  </style>
+</head>
+<body>
+  <h1>🍿 MovieFinder</h1>
+  <div class="main-box">
+    <form id="searchForm" autocomplete="off">
+      <input type="text" id="query" placeholder="Search for a movie..." required />
+      <button type="submit">Search</button>
+    </form>
+    <div class="results" id="results"></div>
+  </div>
+  <!-- Modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Powered by OMDb API</div>
+  <script>
+    // Use OMDb's public API key
+    const API_URL = q => `https://www.omdbapi.com/?apikey=564727fa&s=${encodeURIComponent(q)}`;
+    const API_DETAIL = id => `https://www.omdbapi.com/?apikey=564727fa&i=${id}&plot=full`;
+
+    const form = document.getElementById('searchForm');
+    const results = document.getElementById('results');
+    const modalBg = document.getElementById('modalBg');
+    const modal = document.getElementById('modal');
+
+    form.onsubmit = async function(e) {
+      e.preventDefault();
+      const q = document.getElementById('query').value;
+      results.innerHTML = "<div style='grid-column:span 2;text-align:center;'>Searching...</div>";
+      const data = await fetch(API_URL(q)).then(r=>r.json());
+      results.innerHTML = "";
+      if(!data.Search) {
+        results.innerHTML = `<div style="grid-column:span 2;color:#b44;">No movies found.</div>`;
+        return;
+      }
+      data.Search.slice(0,8).forEach(mov => {
+        const card = document.createElement('div');
+        card.className = "movie-card";
+        card.innerHTML = `
+          <img class='poster' src='${mov.Poster&&mov.Poster!="N/A"?mov.Poster:"https://via.placeholder.com/220x330?text=No+Image"}' alt="poster"/>
+          <div class='title'>${mov.Title}</div>
+          <div class='year'>${mov.Year}</div>
+        `;
+        card.onclick = async function(){
+          await showDetail(mov.imdbID);
+        };
+        results.appendChild(card);
+      });
+    };
+
+    // Modal logic
+    async function showDetail(imdbID){
+      modalBg.style.display = "flex";
+      modal.innerHTML = "Loading...";
+      const det = await fetch(API_DETAIL(imdbID)).then(r=>r.json());
+      modal.innerHTML = `
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <h2>${det.Title} <span style="font-size:0.8em;color:#aaa;float:right">${det.Year}</span></h2>
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <img src='${det.Poster&&det.Poster!="N/A"?det.Poster:"https://via.placeholder.com/110x195?text=No+Poster"}' alt="poster" style="width:94px;height:140px;object-fit:cover;border-radius:7px;box-shadow:0 2px 9px #ccc4;" />
+          <div class='info'>
+            <b>Rated:</b> ${det.Rated||"-"} <br>
+            <b>Genre:</b> ${det.Genre||"-"} <br>
+            <b>IMDB:</b> ${det.imdbRating||"-"} <br>
+            <b>Director:</b> ${det.Director||"-"} <br>
+            <b>Actors:</b> ${det.Actors||"-"} <br>
+            <b>Plot:</b> <span style="font-size:0.98em;">${det.Plot||"-"}</span>
+          </div>
+        </div>
+      `;
+    }
+    window.closeModal = function(){
+      modalBg.style.display = "none";
+      modal.innerHTML = "";
+    };
+    modalBg.onclick = function(e){ if(e.target===modalBg) closeModal(); }
+  </script>
+</body>
+</html>
