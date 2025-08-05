@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      background: linear-gradient(120deg, #82c7e6 0%, #e0c3fc 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #20313a; min-height:100vh; margin:0; display:flex;flex-direction:column;align-items:center;
+    }
+    h1 { margin:35px 0 10px 0; font-size:2.1rem; letter-spacing:.7px; color:#32495f;text-align:center;}
+    .dash-box {
+      background: #fffefdcc; border-radius: 16px;
+      box-shadow:0 4px 22px #a087e522; margin-bottom:22px;
+      width:350px; max-width:96vw; padding:28px 19px 19px 19px;
+    }
+    form { display:flex; gap:10px;}
+    input[type=text] {
+      flex:1; font-size:1.1em; border-radius:9px; border:1.5px solid #9fd0ff;
+      padding:8px 13px;
+    }
+    button {
+      background:#73befc;color:#252d3c;font-weight:700;border:none; border-radius:8px;
+      font-size:1rem; padding: 8px 20px; cursor:pointer; transition:background .15s;
+    }
+    button:hover{background:#639cd9;}
+    .weather-main {
+      margin-top:21px; text-align:center;
+    }
+    .city-name {font-weight:700;font-size:1.3em;letter-spacing:.8px;}
+    .temp {font-size:2.1em;font-weight:700;color:#3ab7e7;}
+    .desc {font-size:1.14em;color:#7c419d;margin-bottom:10px;}
+    .icon {font-size:3.3em; vertical-align:middle;margin-right:8px;}
+    .meta {color:#38497b;font-size:1em;margin:0 0 4px 0;}
+    .forecast-hr {border:none; border-bottom:1.5px solid #d1d8f5; margin:22px 0 10px 0;}
+    .forecast {
+      display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:7px;
+    }
+    .fday {
+      background:#e0eafb; border-radius:11px; box-shadow:0 2px 7px #ced4e656; padding:8px 11px 6px 11px;
+      text-align:center; min-width: 61px;
+      font-size:1.03rem; color:#28658a;
+      animation:fadein .7s;
+    }
+    .fday .icon{font-size:2em;margin:0;}
+    .fday .dt{font-size:.89em;color:#62466b;margin-bottom:2px;}
+    @keyframes fadein{0%{opacity:0;}100%{opacity:1;}}
+    .footer{margin:20px 0 8px 0;text-align:center;opacity:0.38;font-size:0.98rem;}
+    @media(max-width:400px){.dash-box{padding:8px 3vw 8px 3vw;}}
+  </style>
+</head>
+<body>
+  <h1>🌦️ Weather Dashboard</h1>
+  <div class="dash-box">
+    <form id="searchForm" autocomplete="off">
+      <input type="text" id="city" placeholder="Enter city..." required />
+      <button type="submit">Search</button>
+    </form>
+    <div class="weather-main" id="weatherMain">Enter a city to see the latest weather!</div>
+    <hr class="forecast-hr"/>
+    <div class="forecast" id="forecast"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Powered by Open-Meteo APIs</div>
+  <script>
+    // --- Weather code to icon and label map ---
+    const ICONS = {
+      0: ["☀️", "Clear"], 1: ["🌤️", "Mainly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Cloudy"],
+      45: ["🌫️", "Fog"], 48: ["🌫️", "Depositing rime fog"], 51: ["🌦️", "Light drizzle"], 53: ["🌦️","Drizzle"], 55: ["🌧️", "Dense drizzle"],
+      61: ["🌦️", "Light rain"], 63: ["🌧️","Rain"], 65: ["🌧️","Heavy rain"],
+      71: ["🌨️", "Light snow"], 73: ["🌨️","Snow"], 75: ["🌨️","Heavy snow"],
+      80: ["🌧️", "Showers"], 81: ["🌦️", "Showers"], 82: ["⛈️", "Thunderstorm"], 95: ["⛈️","Thunderstorm"], 96: ["⛈️", "Thunderstorm+hail"]
+    };
+    function getIcon(code){
+      let group = [code, Math.floor(code/10)*10, Math.floor(code/100)*100].find(k=>ICONS[k]);
+      if(!group) return ["❓","Unknown"];
+      return ICONS[group];
+    }
+
+    // --- Search logic ---
+    const form = document.getElementById('searchForm'), weatherMain = document.getElementById('weatherMain'), forecastDiv = document.getElementById('forecast');
+    form.onsubmit = async function(e){
+      e.preventDefault();
+      let city = document.getElementById('city').value.trim();
+      weatherMain.innerHTML = "Searching...";
+      forecastDiv.innerHTML = "";
+      // Step 1: Geocode
+      const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+      const geo = await resp.json();
+      if(!geo.results || !geo.results[0]){
+        weatherMain.innerHTML = `<span style="color:#b44;">Couldn't find this city.</span>`;
+        return;
+      }
+      const { latitude, longitude, name, country } = geo.results[0];
+      // Step 2: Weather
+      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&forecast_days=5&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`;
+      const wd = await fetch(wUrl).then(r=>r.json());
+      // Current summary
+      const w = wd.current_weather, code=w.weathercode, [ico,label]=getIcon(code);
+      weatherMain.innerHTML = `
+        <div class="city-name">${name}${country?"<span style='color:#aca; font-size:.97em;'>, "+country+"</span>":""}</div>
+        <span class="icon">${ico}</span>
+        <span class="temp">${Math.round(w.temperature)}°C</span>
+        <div class="desc">${label}</div>
+        <div class="meta">Wind: ${w.windspeed} km/h &middot; Direction: ${w.winddirection}°</div>
+        <div class="meta">Time: ${w.time.replace('T',' ')}</div>
+      `;
+      // Forecast
+      let fc = wd.daily;
+      forecastDiv.innerHTML = "";
+      for(let i=0;i<fc.time.length;++i){
+        let [ico2,desc2]=getIcon(fc.weathercode[i]);
+        let d = new Date(fc.time[i]+"T12:00:00"), dt = d.toLocaleString("en", {weekday:"short",month:"short",day:"numeric"});
+        forecastDiv.innerHTML += `
+          <div class="fday">
+            <div class="dt">${dt}</div>
+            <div class="icon">${ico2}</div>
+            <div><b>${Math.round(fc.temperature_2m_max[i])}°</b> / <span style="color:#6c7499">${Math.round(fc.temperature_2m_min[i])}°</span></div>
+            <div style="font-size:.92em;">${desc2}</div>
+          </div>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>
