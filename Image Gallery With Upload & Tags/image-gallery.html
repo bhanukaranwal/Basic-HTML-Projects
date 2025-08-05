@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Gallery with Tags</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#d6eaff 0%,#ffd6fa 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#273153;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:34px 0 13px 0;font-size:2.13rem;color:#ce57ef;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:27px 12px 13px 12px;
+      border-radius:15px;box-shadow:0 4px 22px #ddbfee3c;margin-bottom:17px;
+      width:99vw;max-width:420px;display:flex;flex-direction:column;align-items:center;
+    }
+    .upload-row{display:flex;flex-direction:column;gap:9px;width:100%;margin-bottom:8px;}
+    .upload-row input[type=file]{padding:2px;}
+    .tag-edit {display:flex;gap:5px;}
+    .tag-edit input {padding:5px 9px;border-radius:7px;border:1.2px solid #c7b8e6;width:115px;}
+    .gallery-controls{display:flex;gap:10px;align-items:center;margin:8px 0 14px 0;}
+    .gallery-controls input{padding:5px 10px;border-radius:7px;border:1.2px solid #fdafeb;}
+    .gallery {display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px;width:100%;}
+    .card {background:#fffbe7;border-radius:13px;box-shadow:0 2px 10px #ddbfee32;
+      padding:9px 6px 12px 6px;display:flex;flex-direction:column;align-items:center;position:relative;transition:box-shadow .15s;}
+    .card:hover {box-shadow:0 6px 22px #cc65e447;}
+    .img-thumb {width:110px;height:110px;object-fit:cover;border-radius:7px;margin-bottom:6px;}
+    .tag-row {display:flex;gap:4px;flex-wrap:wrap;}
+    .tag {
+      background:#d5c5fd;color:#6244be;font-size:.97em;padding:1px 7px;
+      border-radius:11px;user-select:none;margin-bottom:2px;
+    }
+    .del-btn {
+      background:none;border:none;color:#e16992;cursor:pointer;font-size:1.08em;position:absolute;top:4px;right:5px;padding:1px 7px;border-radius:5px;transition:background .09s;}
+    .del-btn:hover {background:#fde7f2;}
+    .footer{margin:21px 0 8px 0;text-align:center;opacity:.36;font-size:.98em;}
+    @media(max-width:430px){.main-box{padding:8px 2vw 7px 2vw;}.gallery{gap:8px;}}
+  </style>
+</head>
+<body>
+  <h1>🖼️ Image Gallery with Tags</h1>
+  <div class="main-box">
+    <form class="upload-row" id="upForm" autocomplete="off">
+      <input type="file" id="imgInput" accept="image/*" required>
+      <div class="tag-edit">
+        <input type="text" id="tagsIn" placeholder="Tags (comma separated)">
+        <button type="submit">Upload</button>
+      </div>
+    </form>
+    <div class="gallery-controls">
+      <input type="text" id="tagFilter" placeholder="Search tags...">
+      <button onclick="clearFilter()">Clear</button>
+    </div>
+    <div class="gallery" id="gallery"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · All images and tags stay in your browser</div>
+  <script>
+    function getImages(){return JSON.parse(localStorage.imgGallery||"[]");}
+    function setImages(d){localStorage.imgGallery=JSON.stringify(d);}
+    function render(){
+      let d=getImages(), q=document.getElementById('tagFilter').value.trim().toLowerCase();
+      if(q){ d = d.filter(img=>img.tags.some(t=>t.includes(q))); }
+      document.getElementById('gallery').innerHTML =
+        d.map((img,i)=>`
+        <div class="card">
+          <button class="del-btn" onclick="delImg(${img.id})">&times;</button>
+          <img class="img-thumb" src="${img.data}" alt=""/>
+          <div class="tag-row">${img.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </div>`).join('') ||
+        "<div style='color:#b37;text-align:center;'>No images yet.</div>";
+    }
+    document.getElementById('upForm').onsubmit = function(e){
+      e.preventDefault();
+      let file = document.getElementById('imgInput').files[0];
+      if(!file) return;
+      let reader = new FileReader();
+      reader.onload = function(e2){
+        let d=getImages();
+        let tags = document.getElementById('tagsIn').value.split(',').map(t=>t.trim().toLowerCase()).filter(t=>t);
+        d.push({id:Date.now(),data:e2.target.result,tags});
+        setImages(d); render(); document.getElementById('upForm').reset();
+      };
+      reader.readAsDataURL(file);
+    };
+    window.delImg = function(id){
+      setImages(getImages().filter(i=>i.id!==id)); render();
+    }
+    document.getElementById('tagFilter').oninput = render;
+    window.clearFilter = function(){document.getElementById('tagFilter').value="";render();}
+    render();
+  </script>
+</body>
+</html>
