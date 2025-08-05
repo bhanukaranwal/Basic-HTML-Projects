@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kanban Task Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg,#f5f7fa 0%,#c3cfe2 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh; margin: 0; color:#1e2638;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { margin:34px 0 13px 0; font-size:2.15rem; color:#4977c6; }
+    .board {
+      display: flex; gap:28px; justify-content: center;
+      margin:17px auto 0 auto; width:98vw; max-width:980px; align-items:flex-start;
+    }
+    .col {
+      background:#fff; border-radius:15px; flex:1 1 220px; min-width:210px; max-width:320px;
+      padding:18px 10px 13px 10px; box-shadow:0 4px 18px #488adb18;
+      display:flex; flex-direction:column; align-items:center;
+      min-height:310px; max-height:75vh; overflow-y:auto;
+      animation:fadein .6s;
+    }
+    .col h2 { margin:0 0 13px 0; font-size:1.15em; color:#4977c6;}
+    .task {
+      background: #f3f8ff; border-radius:10px; box-shadow:0 1px 7px #8fc5de26;
+      padding:10px 13px 8px 13px; margin-bottom:8px; min-width:97%; font-size:1.06em;
+      color:#36778a; cursor:move; position:relative; animation:popin .23s;
+      transition: background .13s;
+    }
+    @keyframes popin{0%{transform:scale(.95);opacity:0;}100%{transform:scale(1);opacity:1;}}
+    .task[draggable="true"]:active { background:#e3effd; }
+    .del-btn {
+      position:absolute;top:8px;right:8px;font-size:1.2em;
+      color:#e26994;background:none;border:none;cursor:pointer;padding:0 3px 0 3px;
+      border-radius:6px; transition:background .12s;
+    }
+    .del-btn:hover { background:#fae2ec;}
+    .task.drag-over {
+      border:2.5px dashed #b8a1f6;
+      background:#f6f9ff;
+    }
+    .add-form { margin-bottom:14px; }
+    .add-form input { width:72%;padding:7px 11px;border-radius:7px;font-size:1em;
+      border:1.3px solid #cacfe8;margin-right:6px;}
+    .add-form button { background:#82d7d6;color:#184a48;border:none;border-radius:7px;
+      font-weight:700;padding:6px 14px;cursor:pointer;}
+    @media(max-width:1000px){.board{flex-direction:column;gap:13px;align-items:stretch;}}
+    .footer{margin:22px 0 7px 0;text-align:center;opacity:.36;font-size:.98em;}
+    @media(max-width:470px){.col{min-width:unset;max-width:99vw;padding:8px 2vw 7px 2vw;}}
+    @keyframes fadein{0%{opacity:0;}100%{opacity:1;}}
+  </style>
+</head>
+<body>
+  <h1>🗂️ Task Board</h1>
+  <div class="board">
+    <div class="col" id="todo">
+      <h2>To-Do</h2>
+      <form class="add-form" onsubmit="addTask('todo',event)">
+        <input placeholder="New task..." maxlength="64" required>
+        <button type="submit">Add</button>
+      </form>
+      <div class="task-list" id="list-todo"></div>
+    </div>
+    <div class="col" id="progress">
+      <h2>In Progress</h2>
+      <div class="task-list" id="list-progress"></div>
+    </div>
+    <div class="col" id="done">
+      <h2>Done</h2>
+      <div class="task-list" id="list-done"></div>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Tasks and status are saved in your browser</div>
+  <script>
+    // --- Kanban Data Model ---
+    function getTasks(){ return JSON.parse(localStorage.kanbanTasks||'{"todo":[],"progress":[],"done":[]}'); }
+    function setTasks(d){ localStorage.kanbanTasks=JSON.stringify(d); }
+    function addTask(col,e){
+      e.preventDefault();
+      const val = e.target.querySelector('input').value.trim();
+      if(!val) return;
+      let d=getTasks();
+      d[col].push({id:Date.now(),text:val});
+      setTasks(d); render();
+      e.target.reset();
+    }
+    function delTask(col, id){
+      let d=getTasks();
+      d[col]=d[col].filter(t=>t.id!=id);
+      setTasks(d); render();
+    }
+    // --- Render/Update UI ---
+    function render(){
+      let d = getTasks();
+      ['todo','progress','done'].forEach(col=>{
+        let el=document.getElementById('list-'+col);
+        el.innerHTML = d[col].map(t=>
+          `<div class="task" draggable="true" data-id="${t.id}">
+            ${t.text}
+            <button class="del-btn" onclick="delTask('${col}',${t.id})">&times;</button>
+          </div>`
+        ).join('');
+      });
+      setDragEvents();
+    }
+    // --- DRAG & DROP ---
+    function setDragEvents(){
+      document.querySelectorAll('.task').forEach(task=>{
+        task.ondragstart = function(e){
+          e.dataTransfer.setData('text/plain',task.dataset.id);
+          e.dataTransfer.setData('from', task.parentElement.id.replace('list-',''));
+          setTimeout(()=>task.style.display='none',0);
+        };
+        task.ondragend = function(){ task.style.display='block'; document.querySelectorAll('.task').forEach(t=>t.classList.remove('drag-over')); };
+      });
+      document.querySelectorAll('.task-list').forEach(list=>{
+        list.ondragover = e => {e.preventDefault();};
+        list.ondragenter = e => {
+          if(e.target.classList.contains('task-list')) e.target.classList.add('drag-over');
+        };
+        list.ondragleave = e => {e.target.classList.remove('drag-over');};
+        list.ondrop = function(e){
+          e.preventDefault();
+          this.classList.remove('drag-over');
+          const id = e.dataTransfer.getData('text/plain');
+          const from = e.dataTransfer.getData('from');
+          const to = this.id.replace('list-','');
+          if(from!==to){
+            let d = getTasks();
+            let task = d[from].find(t=>t.id==id);
+            d[from]=d[from].filter(t=>t.id!=id);
+            d[to].push(task); setTasks(d); render();
+          }
+        };
+      });
+    }
+    window.delTask = delTask;
+    render();
+  </script>
+</body>
+</html>
