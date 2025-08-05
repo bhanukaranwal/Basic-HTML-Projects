@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Social Feed Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style id="theme-style">
+    :root {
+      --bg: #f6f2ff;
+      --tx: #231d2f;
+      --card: #fff;
+      --accent: #5237fa;
+      --shadow: #e5d4fc;
+      --comment: #f0eafd;
+    }
+    body {
+      background: var(--bg);
+      color: var(--tx);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { margin: 33px 0 8px 0; font-size:2.2rem; color:var(--accent);}
+    .feed-box {
+      margin-top:18px; background:var(--card); border-radius:16px;
+      box-shadow:0 4px 21px var(--shadow); padding:29px 16px 14px 16px;
+      min-width:310px; max-width:98vw; width:360px;
+      display:flex; flex-direction:column; align-items:center;
+      transition: background 0.25s, color 0.19s;
+    }
+    .theme-btn {
+      font-size:1em;padding:7px 22px;font-weight:600;background:var(--accent);color:#fff;
+      border:none;border-radius:8px;box-shadow:0 2px 9px #a98b3712;margin:0 4px;cursor:pointer;
+      margin-bottom:18px; transition:background .16s;
+    }
+    .theme-btn.selected { background: #fff; color: var(--accent); border:1.3px solid var(--accent);}
+    .post-form textarea {
+      width:97%; font-size:1.05em; border-radius:8px; border:1.5px solid #cabcf2;
+      padding:9px 13px; resize:vertical;
+    }
+    .post-form button {
+      background:var(--accent); color:#fff; font-weight:700; border:none; border-radius:8px;
+      padding:8px 23px; margin-top:7px; font-size:1em; cursor:pointer; transition: background .14s;
+      margin-bottom:12px;
+    }
+    .post-form button:hover { background: #2b127b;}
+    .feed { width:100%; }
+    .post {
+      background: var(--card); border-radius:13px; box-shadow:0 2px 13px var(--shadow); margin-bottom:17px;
+      padding:14px 14px 7px 14px; position:relative; animation:fadein .6s;
+    }
+    .author { font-weight:700; color:var(--accent); margin-bottom:2px;}
+    .ptime { color:#82769b; font-size:0.95em;}
+    .body { margin:7px 0 12px 0; }
+    .likebar {margin:0 0 7px 0;color:#2b127b;font-size:.99em;display:flex;align-items:center;gap:10px;}
+    .like-btn {
+      border:none; background:none; color: #d54b9c; font-size: 1.2em; cursor:pointer;
+      margin-right:3px; transition:color .11s;
+    }
+    .like-btn.liked { color:#ae23fd;}
+    .comment-sec { background: var(--comment); border-radius: 8px; padding: 9px 11px; }
+    .comm-list { list-style:none;padding:0;margin:6px 0 0 0;}
+    .comm-list li { font-size:.97em;color:#574175;background:#efe6fd;border-radius:5px; padding:4px 8px;margin-bottom:3px;}
+    .comm-form { display:flex;margin-top:8px;gap:6px;}
+    .comm-form input {
+      flex:1;border-radius:6px;padding:5px 10px;font-size:.97em;border:1px solid #e9d7f0;
+    }
+    .comm-form button {
+      background:var(--accent);color:#fff;border:none;padding:5px 13px;border-radius:6px; font-weight:600; cursor:pointer;
+    }
+    @keyframes fadein {0%{opacity:0;transform:scale(.99);}100%{opacity:1;transform:scale(1);}}
+    .footer{margin:23px 0 9px 0;text-align:center;opacity:.39;font-size:.98em;}
+    @media(max-width:430px){.feed-box{padding:9px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🌐 Social Feed Demo</h1>
+  <div class="feed-box">
+    <div>
+      <button class="theme-btn selected" id="lightBtn">Light</button>
+      <button class="theme-btn" id="darkBtn">Dark</button>
+    </div>
+    <form class="post-form" id="postForm" autocomplete="off">
+      <textarea id="postTxt" placeholder="What's on your mind?" maxlength="180" required></textarea>
+      <button type="submit">Post</button>
+    </form>
+    <div class="feed" id="feed"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Posts, likes, and comments are saved in your browser</div>
+  <script>
+    // --- THEME SWITCHING ---
+    const THEMES = {
+      light: {'--bg':'#f6f2ff','--tx':'#231d2f','--card':'#fff','--accent':'#5237fa','--shadow':'#e5d4fc','--comment':'#f0eafd'},
+      dark:  {'--bg':'#181929','--tx':'#f7f5ff','--card':'#232433','--accent':'#b87ccd','--shadow':'#44305f','--comment':'#312d41'}
+    };
+    function setTheme(id){
+      let rootVars = Object.entries(THEMES[id]).map(([k,v])=>`:root{${k}:${v};}`).join("\n");
+      let style=document.getElementById('theme-style');
+      style.innerHTML = rootVars + style.innerHTML.slice(style.innerHTML.indexOf('body'));
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('selected'));
+      document.getElementById(id+'Btn').classList.add('selected');
+      localStorage.smtheme=id;
+    }
+    document.getElementById('lightBtn').onclick = ()=>setTheme('light');
+    document.getElementById('darkBtn').onclick  = ()=>setTheme('dark');
+    setTheme(localStorage.smtheme||'light');
+    // --- SOCIAL FEED LOGIC ---
+    function getPosts(){ return JSON.parse(localStorage.smfeed||'[]'); }
+    function setPosts(d){ localStorage.smfeed = JSON.stringify(d); }
+    // Generate random initial posts if empty
+    if(!localStorage.smfeed){
+      let rnds = [
+        "Just finished a great book! 📚",
+        "Can’t believe it’s already Friday!",
+        "Does anyone want to go hiking this weekend? 🥾",
+        "I made the best pasta ever tonight 🍝",
+        "Blessed and grateful! 💫"
+      ];
+      setPosts(rnds.map((b,i)=>({id:Date.now()+i,author:"@randomuser",body:b,ptime:new Date()-3600e3*i,likes:Math.floor(Math.random()*12),liked:false,comments:[] })));
+    }
+    function showFeed(){
+      let d = getPosts();
+      d.sort((a,b)=>b.ptime-a.ptime);
+      let html = "";
+      d.forEach((p,idx)=>{
+        html += `<div class="post">
+          <div class="author">${p.author} <span class="ptime" style="float:right;">${timeAgo(p.ptime)}</span></div>
+          <div class="body">${p.body}</div>
+          <div class="likebar">
+            <button class="like-btn${p.liked?' liked':''}" onclick="likePost(${p.id})">${p.liked?'❤️':'🤍'}</button>
+            <span>${p.likes} like${p.likes==1?'':'s'}</span>
+          </div>
+          <div class="comment-sec">
+              <ul class="comm-list" id="commlist-${p.id}">
+                ${p.comments.map(c=>`<li>${c}</li>`).join('')}
+              </ul>
+              <form class="comm-form" onsubmit="event.preventDefault();addComment(${p.id},this);">
+                <input type="text" maxlength="64" placeholder="Add a comment..." required/>
+                <button type="submit">💬</button>
+              </form>
+          </div>
+        </div>`;
+      });
+      document.getElementById('feed').innerHTML = html;
+    }
+    window.likePost = function(id){
+      let d = getPosts(), p = d.find(x=>x.id===id);
+      if(p){ p.liked=!p.liked; p.likes+=p.liked?1:-1; setPosts(d); showFeed(); }
+    }
+    window.addComment = function(id,form){
+      let txt = form.querySelector('input').value.trim();
+      if(!txt)return;
+      let d = getPosts(), p = d.find(x=>x.id===id);
+      if(p){ p.comments.push(txt); setPosts(d); showFeed();}
+    }
+    function timeAgo(t){
+      let s = Math.floor((Date.now()-(t||0))/1000), m=Math.floor(s/60), h=Math.floor(m/60), d=Math.floor(h/24);
+      if(s<60)return s+"s ago";
+      if(m<60)return m+"m ago";
+      if(h<24)return h+"h ago";
+      if(d<30)return d+"d ago";
+      return ">1m ago";
+    }
+    document.getElementById('postForm').onsubmit = function(e){
+      e.preventDefault();
+      let d = getPosts();
+      d.push({id:Date.now(),author:"@you",body:this.postTxt.value,ptime:Date.now(),likes:0,liked:false,comments:[]});
+      setPosts(d);
+      this.postTxt.value='';
+      showFeed();
+    }
+    showFeed();
+  </script>
+</body>
+</html>
