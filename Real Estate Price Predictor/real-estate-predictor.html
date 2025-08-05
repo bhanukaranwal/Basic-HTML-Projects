@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Real Estate Price Predictor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg, #dbe6e4 0%, #b1cbbb 100%);
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      color: #21504b;
+    }
+    h1 { font-size:2.1rem; margin: 34px 0 14px 0; letter-spacing: 1px; }
+    .main-box {
+      background: rgba(255,255,255,0.97); padding: 28px 22px 24px 22px; border-radius: 16px;
+      box-shadow: 0 4px 22px #b1cbbb10; min-width: 320px; max-width: 95vw; margin-bottom: 20px;
+    }
+    form label { display: block; font-weight: 600; margin: 10px 0 5px 0; }
+    input[type=number],select {
+      width: 98%; font-size: 1.04rem; padding: 6px 9px; border-radius: 6px; border: 1px solid #bdd8d0;
+      margin-bottom:6px;
+    }
+    button {
+      background: #8ed9cc; color: #174244; border: none; border-radius: 7px; font-weight: 600;
+      padding: 9px 20px; font-size: 1rem; cursor: pointer; margin: 13px 0 5px 0;
+      transition: background 0.17s;
+    }
+    button:hover{background:#5bbeac;}
+    .pred-box {
+      background: #e3faf3; color:#0f3e35; border-radius: 10px;
+      margin: 14px 0 9px 0; padding: 18px 13px; text-align:center; box-shadow:0 2px 9px #aaccc620;
+      font-size:1.16rem; font-weight:500; letter-spacing:0.5px;
+    }
+    #chart {
+      width:100%; max-width:340px; height:120px; display:block; margin: 12px auto 0 auto;
+      background: #f6f8f5; border-radius:8px;
+    }
+    .footer{margin:23px 0 9px 0;text-align:center; opacity:0.37; font-size:0.97rem;}
+    @media(max-width:400px){.main-box{padding:10px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🏠 Real Estate Price Predictor</h1>
+  <div class="main-box">
+    <form id="predForm" autocomplete="off">
+      <label>Location:
+        <select id="location">
+          <option value="City Center">City Center</option>
+          <option value="Suburb">Suburb</option>
+          <option value="Countryside">Countryside</option>
+        </select>
+      </label>
+      <label>Area (sq ft): <input type="number" id="area" value="1000" min="400" max="9000" required></label>
+      <label>Bedrooms: <input type="number" id="beds" value="2" min="1" max="8" required></label>
+      <label>Bathrooms: <input type="number" id="baths" value="1" min="1" max="6" required></label>
+      <label>Years Old: <input type="number" id="age" value="5" min="0" max="100" required></label>
+      <button type="submit">Predict Price</button>
+    </form>
+    <div class="pred-box" id="resultBox">Enter property details and click Predict!</div>
+    <canvas id="chart"></canvas>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · No backend required; all calculations in-browser</div>
+  <script>
+    // Simple mock price "model"
+    function estimatePrice(loc, area, beds, baths, age){
+      let base = { "City Center": 420, "Suburb": 280, "Countryside": 130 }[loc];
+      let price = base*area + (beds-2)*22000 + (baths-1)*9000 - age*1800;
+      return Math.max(15000, Math.round(price));
+    }
+
+    // Chart logic: bars for each feature's contribution
+    function drawChart(base, beds, baths, age, area){
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 340; canvas.height = 120;
+      ctx.clearRect(0,0,340,120);
+      const labels = ["Base × Area", "Bedrooms", "Bathrooms", "Age Adj."];
+      const vals = [base*area, (beds-2)*22000, (baths-1)*9000, -age*1800];
+      const colors = ["#32b18f","#479ae0","#eebb18","#e5788f"];
+      const total = vals.reduce((a,b)=>a+b,0);
+      let max = Math.max(...vals.map(Math.abs))*1.1, min = Math.min(0, ...vals)*1.1;
+      for(let i=0;i<4;++i){
+        let v = vals[i], x=20+i*80, H=80, y=25;
+        ctx.fillStyle = colors[i];
+        let h = v/max*H;
+        ctx.fillRect(x, y+H-Math.max(0,h), 44, Math.abs(h));
+        ctx.font = "bold 13px Segoe UI";
+        ctx.fillStyle="#225048"; ctx.textAlign="center";
+        ctx.fillText(labels[i], x+22, 113);
+      }
+      // Total line
+      ctx.font = "bold 15px Segoe UI"; ctx.fillStyle="#1b5";
+      ctx.fillText("Total", 312, 20);
+      ctx.font = "bold 18px Segoe UI"; ctx.fillText("$"+Math.round(total/100)/10+"k", 312, 45);
+    }
+
+    document.getElementById("predForm").onsubmit = function(e){
+      e.preventDefault();
+      const loc = document.getElementById("location").value;
+      const area = +document.getElementById("area").value;
+      const beds = +document.getElementById("beds").value;
+      const baths = +document.getElementById("baths").value;
+      const age = +document.getElementById("age").value;
+      const price = estimatePrice(loc,area,beds,baths,age);
+      document.getElementById("resultBox").innerHTML =
+        `<b>Predicted Price:</b> <span style="color:#1f956f; font-size:1.13em;">$${price.toLocaleString()}</span>`;
+      drawChart({ "City Center":420,"Suburb":280,"Countryside":130 }[loc],beds,baths,age,area);
+    };
+    // Initbar
+    drawChart(420,2,1,5,1000);
+  </script>
+</body>
+</html>
