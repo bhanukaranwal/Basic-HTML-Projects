@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Investment Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(135deg, #335367 0%, #212833 100%);
+      font-family: 'Segoe UI', Arial, sans-serif; color: #eee;
+      display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0;
+    }
+    h1 { margin: 30px 0 8px 0; font-size: 2.2rem; letter-spacing: 1px; }
+    .sim-box {
+      background: rgba(50,50,60,0.92); padding: 28px 32px 20px 32px;
+      border-radius: 14px; box-shadow: 0 4px 20px #0009;
+      min-width: 340px; max-width: 99vw; margin: 10px 0;
+    }
+    .chart-area {
+      background: #202932; border-radius: 9px; padding: 12px;
+      margin: 0 0 16px 0;
+    }
+    #chartCanvas {
+      display: block; width: 100%; max-width: 350px; margin: 0 auto;
+      background: #161b22; border-radius: 8px; box-shadow: 0 2px 9px #0004; border: 1px solid #233;
+    }
+    .controls { text-align: center; margin-top: 12px; }
+    select, input[type="number"] {
+      font-size: 1.03rem; padding: 5px 8px; border-radius: 5px; border: none;
+      margin: 0 3px 0 0; min-width: 64px;
+    }
+    button {
+      background: #6cf984; color: #243; font-weight: 600;
+      border: none; border-radius: 7px; font-size: 1rem; padding: 8px 22px; margin: 0 4px;
+      cursor: pointer; transition: 0.2s;
+    }
+    button.sell { background: #f56d78; color: #fff; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button:hover { filter: brightness(1.08); }
+    .stats, .portfolio {
+      margin-top: 14px; font-size: 1.11rem; background: #14161b; border-radius: 8px; padding: 8px 16px 6px 16px;
+      text-align: center;
+    }
+    .stats span, .portfolio span { font-weight: 600; color: #aaff79; }
+    .footer { margin: 24px 0 10px 0; opacity: 0.4; }
+    @media (max-width: 440px) {
+      .sim-box { padding: 8px 3vw 8px 3vw; }
+      #chartCanvas { max-width: 90vw !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>📈 Investment Simulator</h1>
+  <div class="sim-box">
+    <div class="chart-area">
+      <canvas id="chartCanvas" width="350" height="180"></canvas>
+    </div>
+    <div class="controls">
+      <form id="tradeForm" autocomplete="off" style="display:inline;">
+        <label>
+          <select id="side">
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </label>
+        <label>
+          Units: <input type="number" min="1" max="999" value="1" id="units" required>
+        </label>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+    <div class="stats">
+      <span>Balance: $<span id="balance">1,000</span></span>
+      &nbsp;|&nbsp;
+      <span>Holdings: <span id="holdings">0</span> units</span>
+      &nbsp;|&nbsp;
+      <span>Value: $<span id="networth">1,000</span></span>
+    </div>
+    <div class="portfolio">
+      Last 5 trades:<br>
+      <span id="history">(none)</span>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML app by YourName · Static pricing simulation</div>
+  <script>
+    // ---------- Price Series Simulation ----------
+    let t = 0, prices = [100+Math.random()*2], maxPoints = 70;
+    function nextPrice(p) {
+      // Simple brownian motion + drift
+      let drift = 0.03, vol = 2;
+      let rnd = (Math.random()-0.5)*vol;
+      return Math.max(1, p + drift + rnd);
+    }
+    function advancePrice() {
+      prices.push(nextPrice(prices[prices.length-1]));
+      if (prices.length > maxPoints) prices.shift();
+    }
+    // ---------- Chart Drawing ----------
+    const chart = document.getElementById('chartCanvas');
+    const c = chart.getContext('2d');
+    function drawChart() {
+      const W = chart.width, H = chart.height;
+      c.clearRect(0,0,W,H);
+      let min = Math.min(...prices), max = Math.max(...prices);
+      let xStep = W/(prices.length-1), yRange = max-min||1;
+      // Axis
+      c.strokeStyle = "#334";
+      for (let y=0; y<=4; ++y) {
+        let yy = H-(H*y/4);
+        c.beginPath(); c.moveTo(0,yy); c.lineTo(W,yy); c.stroke();
+        c.font = "11px Segoe UI"; c.fillStyle="#629f8c";
+        c.fillText((min + (y/4)*yRange).toFixed(2), 5, yy-2);
+      }
+      // Chart line
+      c.beginPath();
+      for (let i=0; i<prices.length; ++i) {
+        let px = i*xStep, py = H-(prices[i]-min)/yRange*H;
+        if (i===0) c.moveTo(px,py); else c.lineTo(px,py);
+      }
+      c.strokeStyle = "#70edaa"; c.lineWidth = 3; c.shadowColor = "#84f2c0";
+      c.shadowBlur = 15; c.stroke(); c.shadowBlur = 0;
+      // Current price marker
+      let lastPx = (prices.length-1)*xStep, lastPy = H-(prices[prices.length-1]-min)/yRange*H;
+      c.beginPath(); c.arc(lastPx, lastPy, 6, 0, 2*Math.PI);
+      c.fillStyle = "#6cf984"; c.fill();
+      c.strokeStyle="#fff"; c.stroke();
+    }
+    // ---------- Portfolio Logic ----------
+    let bal = 1000, units = 0, history = [];
+    function updateStats() {
+      document.getElementById("balance").textContent = bal.toLocaleString();
+      document.getElementById("holdings").textContent = units;
+      let val = bal + units*prices[prices.length-1];
+      document.getElementById("networth").textContent = Math.round(val).toLocaleString();
+      document.getElementById("history").innerHTML = history.length 
+        ? history.slice(-5).map(x=>x).reverse().join("<br>")
+        : "(none)";
+    }
+    // ---------- Trading Interface ----------
+    document.getElementById("tradeForm").onsubmit = function(e) {
+      e.preventDefault();
+      let side = document.getElementById("side").value,
+          qty = parseInt(document.getElementById("units").value);
+      let price = prices[prices.length-1];
+      if (qty < 1 || isNaN(qty)) return;
+      if (side==="buy") {
+        let cost = qty*price;
+        if (cost > bal) return alert('Insufficient funds.');
+        bal -= cost; units += qty;
+        history.push(`Bought <span style="color:#97ffb2;">${qty}</span> @ $${price.toFixed(2)}`);
+      } else {
+        if (qty > units) return alert('Not enough units.');
+        bal += qty*price; units -= qty;
+        history.push(`Sold <span style="color:#fcb;">${qty}</span> @ $${price.toFixed(2)}`);
+      }
+      updateStats();
+      document.getElementById("units").value = 1;
+    }
+    // ---------- Animate everything ----------
+    function mainLoop() {
+      advancePrice();
+      drawChart();
+      updateStats();
+      setTimeout(mainLoop, 980);
+    }
+    mainLoop();
+  </script>
+</body>
+</html>
