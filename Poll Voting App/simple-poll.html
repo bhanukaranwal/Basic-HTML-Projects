@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Poll & Voting App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#ffecd2 0%,#fcb69f 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#28423c;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:35px 0 12px 0;font-size:2.11rem;color:#f9754f;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:27px 18px 13px 18px;
+      border-radius:15px;box-shadow:0 4px 22px #fcb69f4c;margin-bottom:14px;
+      width:99vw;max-width:410px;display:flex;flex-direction:column;align-items:center;
+    }
+    .form-row {display:flex;flex-direction:column;gap:7px;margin-bottom:16px;width:100%;}
+    .form-row input, .form-row textarea {
+      font-size:1em;padding:7px 10px;border-radius:8px;border:1.2px solid #fcb69f;}
+    .opts-list{margin:9px 0;}
+    .opts-list input {margin-right:3px;}
+    .form-row button {
+      background:#f9754f;color:#fff;font-weight:700;border:none;border-radius:7px;
+      padding:8px 0;margin-top:4px;cursor:pointer;transition:background .13s;font-size:1.06em;}
+    .form-row button:hover {background:#b83620;}
+    .poll-title {font-weight:700;margin-bottom:7px;}
+    .option-row {margin:7px 0;display:flex;align-items:center;gap:8px;}
+    .vote-btn {background:#fcb69f;color:#a6412c;font-weight:700;padding:4px 17px;border-radius:7px;border:none;cursor:pointer;}
+    .vote-btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .bar-wrap {background:#ffe9da;height:18px;border-radius:7px;width:100%;margin:2px 0;position:relative;}
+    .bar {
+      background:#f9754f; height:100%; border-radius:7px; min-width:2px;max-width:100%;
+      transition:width .37s; color:#fff; font-size:.99em;white-space:nowrap;display:flex;align-items:center;justify-content:right;padding-right:9px;
+    }
+    .chart-area{width:100%;margin:10px 0;}
+    .reset-btn{margin-top:13px;background:#fff6ee;color:#b83620;border:1px solid #fcb69f;border-radius:9px;padding:4px 19px;cursor:pointer;}
+    .reset-btn:hover{background:#fff0e5;}
+    .footer{margin:23px 0 8px 0;text-align:center;opacity:.36;font-size:.95em;}
+    @media(max-width:430px){.main-box{padding:8px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🗳️ Simple Poll</h1>
+  <div class="main-box">
+    <form class="form-row" id="pollForm" autocomplete="off">
+      <input type="text" id="question" maxlength="80" placeholder="Your poll question..." required>
+      <div class="opts-list" id="optsList">
+        <input type="text" placeholder="Option 1" maxlength="25" required>
+        <input type="text" placeholder="Option 2" maxlength="25" required>
+      </div>
+      <button type="button" onclick="addOpt()">+ Option</button>
+      <button type="submit">Create Poll</button>
+    </form>
+    <div id="pollArea" style="width:100%"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Create, vote, and visualize polls locally</div>
+  <script>
+    function getPoll(){return JSON.parse(localStorage.simplePoll||'null');}
+    function setPoll(d){localStorage.simplePoll=JSON.stringify(d);}
+    function renderPoll(){
+      let d=getPoll(), area=document.getElementById('pollArea');
+      if(!d){area.innerHTML="No poll created.";} 
+      else {
+        let sum=d.votes.reduce((a,b)=>a+b,0);
+        area.innerHTML=`<div class="poll-title">${d.q}</div>`+
+          d.opts.map((opt,i)=>`
+            <form onsubmit="vote(${i});return false;">
+              <div class="option-row">
+                <button class="vote-btn"${d.voted!==null?' disabled':''}>Vote</button>
+                <span>${opt}</span>
+              </div>
+              <div class="chart-area">
+                <div class="bar-wrap"><div class="bar" style="width:${sum?100*d.votes[i]/sum:1}%">${d.votes[i]||""}</div></div>
+              </div>
+            </form>`).join("")+
+          `<div style="margin:4px 0 2px 0;color:#696;">${sum} total vote${sum===1?"":"s"}${d.voted!==null?" · You voted":" "}</div>
+           <button class="reset-btn" onclick="resetPoll()">Reset/Delete</button>`;
+      }
+    }
+    document.getElementById('pollForm').onsubmit=function(e){
+      e.preventDefault();
+      let q=this.question.value.trim(),opts=[...document.querySelectorAll('#optsList input')].map(x=>x.value.trim()).filter(x=>x);
+      if(q==""||opts.length<2)return;
+      setPoll({q,opts,votes:opts.map(()=>0),voted:null});
+      renderPoll();this.reset();optsList.innerHTML='<input type="text" placeholder="Option 1" maxlength="25" required><input type="text" placeholder="Option 2" maxlength="25" required>';
+    }
+    function addOpt(){
+      let o=document.createElement('input');o.type='text';o.placeholder='Option '+(document.querySelectorAll("#optsList input").length+1);o.maxLength=25;
+      document.getElementById('optsList').appendChild(o);
+    }
+    window.vote=function(i){
+      let d=getPoll(); if(!d||d.voted!==null)return;
+      d.votes[i]++;d.voted=i;setPoll(d);renderPoll();
+    }
+    window.resetPoll=function(){localStorage.simplePoll='null';renderPoll();}
+    renderPoll();
+  </script>
+</body>
+</html>
