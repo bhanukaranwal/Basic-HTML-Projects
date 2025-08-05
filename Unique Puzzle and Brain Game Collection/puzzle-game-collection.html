@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Puzzle & Brain Game Collection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg, #48c6ef 0%, #6f86d6 100%);
+      font-family: 'Segoe UI', Arial, sans-serif; color: #1b2535;
+      min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: flex-start;
+    }
+    .container {
+      background: rgba(255,255,255,0.92); margin: 40px 0; padding: 30px 20px 22px 20px;
+      border-radius: 17px; box-shadow: 0 6px 20px #2224;
+      width: 360px; max-width: 98vw;
+    }
+    h1 { text-align: center; font-size: 2rem; margin: 5px; }
+    .nav-tabs { display: flex; justify-content: space-around; margin: 0 0 18px 0; }
+    .tab {
+      flex:1; text-align: center; padding: 10px 0; font-size: 1.08rem; border-radius: 8px 8px 0 0;
+      background: #eaf3ff; cursor: pointer; font-weight: 500;
+      transition: background 0.13s;
+    }
+    .tab.selected { background: #6f86d6; color: #fff; }
+    .game-content { display: none; min-height: 180px; }
+    .game-content.active { display: block; animation: fadein 0.25s; }
+    @keyframes fadein { 0%{opacity:0;} 100%{opacity:1;} }
+    /* Tic-Tac-Toe */
+    .ttt-board { display:grid; grid-template:repeat(3,68px)/repeat(3,68px); gap:7px; justify-content: center; }
+    .ttt-cell {
+      background: #b2eaff; font-size: 2.2rem; text-align:center; line-height:68px;
+      border-radius: 8px; cursor: pointer; font-weight: 700; color: #1b245e;
+      user-select: none; box-shadow:0 2px 8px #0002;
+      transition: background 0.18s;
+    }
+    .ttt-cell:hover { background: #72d0fe; }
+    .ttt-status { text-align:center; margin: 13px 0; font-size:1.13rem; }
+    .ttt-restart { display:block; margin:0 auto 8px auto; }
+    /* Dice roller */
+    .dice-sec { text-align:center; padding-top:10px;}
+    .dice-btn { font-size:1rem; padding:8px 13px; background:#6bcd4a; color:#fff; border:none; border-radius:7px; cursor:pointer; margin:0 8px;}
+    .dice-btn:hover { background: #46a42e; }
+    .dice-rolled { font-size:2.3rem; color:#263; font-family:'Arial Black',Arial,sans-serif;margin: 9px;}
+    /* Sudoku */
+    .sudoku-board {margin:10px auto 8px auto;display:grid;grid-template:repeat(4,34px)/repeat(4,34px);gap:3px;}
+    .sdk-cell {
+      border-radius:6px; background:#ffefb1; text-align:center; font-size:1.2rem; box-shadow:0 2px 7px #0002;
+      outline:none; border:none; color:#513; font-weight:600;
+      width:32px; height:32px;
+    }
+    .sdk-cell.user { background:#dbe6c5; color:#274; }
+    .sudoku-status{text-align:center;font-size:1.06rem;margin:6px;}
+    .sdk-btn{padding:5px 14px;border:none;border-radius:6px;background:#d88351;color:#fff;font-weight:600;cursor:pointer;}
+    .sdk-btn:hover{background:#ae6029;}
+    /* Footer */
+    .footer { margin: 20px 0 8px 0; text-align:center; font-size:0.98rem; opacity:0.45;}
+    @media (max-width:400px){
+      .container{padding:7px 4vw;}
+      .ttt-board{grid-template:repeat(3,18vw)/repeat(3,18vw);}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧩 Puzzle Game Collection</h1>
+    <div class="nav-tabs">
+      <div class="tab selected" data-g="ttt">Tic-Tac-Toe</div>
+      <div class="tab" data-g="dice">Dice Roller</div>
+      <div class="tab" data-g="sudoku">Mini Sudoku</div>
+    </div>
+    <!-- Tic-Tac-Toe -->
+    <div class="game-content active" id="ttt">
+      <div class="ttt-status" id="ttt-status">Your turn: <b>X</b></div>
+      <div class="ttt-board" id="ttt-board"></div>
+      <button class="ttt-restart" onclick="tttRestart()">Restart</button>
+    </div>
+    <!-- Dice Roller -->
+    <div class="game-content" id="dice">
+      <div class="dice-sec">
+        <button class="dice-btn" onclick="rollDice()">Roll Dice</button>
+        <span class="dice-rolled" id="dice-rolled">🎲</span>
+        <div style="margin:10px 0 0 0;color:#265;">Last 3 rolls: <span id="dice-history">-</span></div>
+      </div>
+    </div>
+    <!-- Mini Sudoku -->
+    <div class="game-content" id="sudoku">
+      <div style="text-align:center; margin-bottom:7px;">
+        <button class="sdk-btn" onclick="newSudoku()">New Puzzle</button>
+      </div>
+      <div class="sudoku-board" id="sudoku-board"></div>
+      <div class="sudoku-status" id="sudoku-status"></div>
+    </div>
+  </div>
+  <div class="footer">
+    All-in-one HTML by YourName · Play on any device!
+  </div>
+  <script>
+    // -------- Tabs --------
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = function() {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('selected'));
+        this.classList.add('selected');
+        let gid = this.getAttribute('data-g');
+        document.querySelectorAll('.game-content').forEach(g => g.classList.remove('active'));
+        document.getElementById(gid).classList.add('active');
+      }
+    });
+    // ===== TIC-TAC-TOE =====
+    let tttBoard = Array(9).fill('');
+    let tttTurn = "X", gameOverTTT = false;
+    const tttStat = document.getElementById('ttt-status'), tttB = document.getElementById('ttt-board');
+    function drawTTT() {
+      tttB.innerHTML = '';
+      tttBoard.forEach((cell, i) => {
+        let btn = document.createElement('div');
+        btn.className = "ttt-cell";
+        btn.textContent = cell;
+        btn.onclick = function() { tttClick(i); };
+        if (gameOverTTT || cell) btn.style.pointerEvents = "none";
+        tttB.appendChild(btn);
+      });
+      tttStat.innerHTML = gameOverTTT ? 
+        (winnerTTT(tttBoard) ? `🎉 Winner: <b>${winnerTTT(tttBoard)}</b>` : "Draw!") :
+        `Your turn: <b>${tttTurn}</b>`;
+    }
+    function winnerTTT(b) {
+      const w = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for (let l of w)
+        if (b[l[0]] && b[l[0]]===b[l[1]] && b[l[1]]===b[l[2]])
+          return b[l[0]];
+      return null;
+    }
+    function tttClick(i) {
+      if (gameOverTTT || tttBoard[i]) return;
+      tttBoard[i] = tttTurn;
+      let win = winnerTTT(tttBoard);
+      if (win) { gameOverTTT = true; }
+      else if (tttBoard.every(x => x)) { gameOverTTT = true; }
+      else tttTurn = tttTurn==="X"?"O":"X";
+      drawTTT();
+    }
+    function tttRestart() {
+      tttBoard = Array(9).fill(''); tttTurn = "X"; gameOverTTT = false; drawTTT();
+    }
+    drawTTT();
+    // ===== DICE ROLLER =====
+    let diceHist = [];
+    function rollDice() {
+      let v = Math.floor(Math.random()*6)+1;
+      document.getElementById('dice-rolled').textContent = v;
+      diceHist.unshift(v); if (diceHist.length>3) diceHist.length=3;
+      document.getElementById('dice-history').textContent = diceHist.join(', ');
+    }
+    // ===== MINI SUDOKU =====
+    const sdkBoardDiv = document.getElementById('sudoku-board');
+    let sdkPuzzle = [], sdkCells = [];
+    function generate4x4Sudoku() {
+      // Returns {board: 2D, initial: with some blanks}
+      let base = [1,2,3,4];
+      function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+      function isValid(bd,r,c,v) {
+        for(let i=0;i<4;++i)
+          if (bd[r][i]===v||bd[i][c]===v) return false;
+        let br=Math.floor(r/2)*2,bc=Math.floor(c/2)*2;
+        for(let i=br;i<br+2;++i) for(let j=bc;j<bc+2;++j) if(bd[i][j]===v)return false;
+        return true;
+      }
+      function fill(bd,r,c){
+        if(c===4){r++;c=0;}
+        if(r===4)return true;
+        let vs=base.slice();shuffle(vs);
+        for(let v of vs){
+          if(isValid(bd,r,c,v)){bd[r][c]=v;if(fill(bd,r,c+1))return true;bd[r][c]=0;}
+        } return false;
+      }
+      let board = Array.from({length:4},()=>Array(4).fill(0));
+      fill(board,0,0);
+      // blank 4 random cells
+      let initial = board.map(row=>row.slice());
+      let cellsToRemove = 4;
+      while(cellsToRemove>0){
+        let r=Math.floor(Math.random()*4),c=Math.floor(Math.random()*4);
+        if(initial[r][c]!==0){initial[r][c]=0;cellsToRemove--;}
+      }
+      return {board,initial};
+    }
+    function newSudoku(){
+      sdkPuzzle = generate4x4Sudoku();
+      sdkCells = Array.from({length:4},()=>Array(4).fill(''));
+      drawSudoku();
+      document.getElementById('sudoku-status').textContent='';
+    }
+    function drawSudoku(){
+      sdkBoardDiv.innerHTML='';
+      let {initial}=sdkPuzzle;
+      for(let r=0;r<4;++r) for(let c=0;c<4;++c){
+        let inp = document.createElement('input');
+        inp.className="sdk-cell";
+        inp.maxLength=1; inp.type="text";
+        if(initial[r][c]){inp.value=initial[r][c]; inp.disabled=true;}
+        else {
+          inp.value = sdkCells[r][c];
+          inp.classList.add("user");
+          inp.oninput = function(){
+            let v=this.value.replace(/[^1-4]/g,'');
+            this.value=v.slice(-1);
+            sdkCells[r][c]=this.value;
+            checkSudoku();
+          }
+        }
+        sdkBoardDiv.appendChild(inp);
+      }
+    }
+    function checkSudoku(){
+      let {board,initial}=sdkPuzzle;
+      for(let r=0;r<4;++r) for(let c=0;c<4;++c){
+        if(!initial[r][c] && sdkCells[r][c]!==board[r][c].toString())
+          return; // still incomplete or wrong
+      }
+      document.getElementById('sudoku-status').textContent="🎉 Solved!";
+    }
+    newSudoku();
+  </script>
+</body>
+</html>
