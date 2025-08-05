@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notes App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg,#fed6e3 0%, #a1c4fd 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh; margin: 0; color: #2a2135;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { margin:34px 0 10px 0; font-size:2.17rem; letter-spacing:.7px; color:#4c1fad;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:29px 20px 19px 20px;
+      border-radius:15px; box-shadow:0 4px 17px #b19bf326;
+      width:99vw; max-width:410px; margin-bottom:18px;
+    }
+    #noteForm textarea {
+      width:98%; min-height:57px; border-radius:8px; border:1.4px solid #cabcf2;
+      font-size:1.05em; padding:9px 13px; margin-bottom:10px; font-family:inherit;
+      resize:vertical;
+    }
+    #noteForm button {
+      background:#6b53e5;color:#fff;font-weight:700;border:none;
+      border-radius:8px;padding:8px 24px;font-size:1em;cursor:pointer;transition:background .15s;
+    }
+    #noteForm button:hover { background:#3d2e91; }
+    .notes-list { margin-top:15px; }
+    .note {
+      background:#fffbe7; border-radius:12px; box-shadow:0 2px 14px #eee4ff37; padding:10px 13px 7px 13px;
+      margin-bottom:13px; position:relative; animation:fadein .6s;}
+    .note-text { white-space:pre-wrap; margin-bottom:7px;}
+    .note-meta { color:#a480e1; font-size:.97em;}
+    .edit-btn, .del-btn {
+      position:absolute; top:8px;font-size:1.18em;background:none;border:none;cursor:pointer;
+      border-radius:6px;transition:background .14s;padding:1px 7px;
+    }
+    .edit-btn { right:36px;color:#5a44ae;}
+    .del-btn { right:9px;color:#ed579f;}
+    .edit-btn:hover { background:#e1e6fd;}
+    .del-btn:hover { background:#fae3f7;}
+    @keyframes fadein {0%{opacity:0;transform:scale(.97);}100%{opacity:1;transform:scale(1);}}
+    .footer{margin:22px 0 7px 0;text-align:center;opacity:.39;font-size:.98em;}
+    @media(max-width:430px){.main-box{padding:8px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>📝 Notes App</h1>
+  <div class="main-box">
+    <form id="noteForm" autocomplete="off">
+      <textarea id="noteInput" placeholder="Write a note..." maxlength="500" required></textarea>
+      <button type="submit">Save Note</button>
+    </form>
+    <div class="notes-list" id="notes"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Notes auto-sync in your browser (localStorage)</div>
+  <script>
+    function getNotes(){ return JSON.parse(localStorage.smnotes||'[]'); }
+    function setNotes(d){ localStorage.smnotes = JSON.stringify(d); }
+    function renderNotes(){
+      let notes = getNotes().sort((a,b)=>b.time-a.time), html="";
+      notes.forEach(n=>{
+        html += `<div class="note">
+          <button class="edit-btn" title="Edit" onclick="editNote(${n.id})">&#9998;</button>
+          <button class="del-btn" title="Delete" onclick="delNote(${n.id})">&times;</button>
+          <div class="note-text" id="text${n.id}">${n.text}</div>
+          <div class="note-meta">${new Date(n.time).toLocaleString()}</div>
+        </div>`;
+      });
+      document.getElementById('notes').innerHTML = html || "<div style='text-align:center;color:#b29;'>No notes yet.</div>";
+    }
+    window.delNote = function(id){
+      let notes = getNotes().filter(n=>n.id!==id);
+      setNotes(notes); renderNotes();
+    }
+    window.editNote = function(id){
+      let n = getNotes().find(n=>n.id===id);
+      if(n) {
+        document.getElementById('noteInput').value = n.text;
+        document.getElementById('noteForm').setAttribute('data-edit',id);
+      }
+    }
+    document.getElementById('noteForm').onsubmit = function(e){
+      e.preventDefault();
+      let txt=this.noteInput.value.trim();
+      if(!txt)return;
+      let notes = getNotes();
+      let editId = this.getAttribute('data-edit');
+      if(editId){
+        let n = notes.find(n=>n.id==editId);
+        if(n) n.text=txt, n.time=Date.now();
+        this.removeAttribute('data-edit');
+      } else {
+        notes.push({id:Date.now(),text:txt,time:Date.now()});
+      }
+      setNotes(notes); this.noteInput.value=''; renderNotes();
+    }
+    renderNotes();
+  </script>
+</body>
+</html>
