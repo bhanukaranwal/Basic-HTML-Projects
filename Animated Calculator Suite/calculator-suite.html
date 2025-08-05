@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Animated Calculator Suite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg, #f4d2c9 0%, #b8e1fc 100%);
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      color: #2b2842;
+    }
+    h1 { margin: 26px 0 10px 0; font-size: 2.1rem; letter-spacing: .7px;}
+    .suite-box {
+      background: rgba(255,255,255,0.94); padding: 27px 20px 20px 20px;
+      border-radius: 18px; box-shadow: 0 4px 21px #f5cfd620;
+      min-width: 330px; max-width: 99vw; margin-bottom: 19px;
+    }
+    .nav-tabs { display: flex; justify-content: space-around; margin: 0 0 17px 0; }
+    .s-tab { flex:1; text-align:center; padding:10px 0; font-size:1.07rem; border-radius:8px 8px 0 0;
+      background:#f3efd7; cursor:pointer; font-weight:500; transition: background 0.13s;
+    }
+    .s-tab.selected { background: #71b8f7; color: #fff; }
+    .s-content { display: none; min-height:170px; }
+    .s-content.active { display:block; animation:fadein .23s;}
+    @keyframes fadein{0%{opacity:0;}100%{opacity:1;}}
+    /* Standard Calculator */
+    .calc-keys{display:grid;grid-template:repeat(4,49px)/repeat(4,49px);gap:7px;justify-content:center;}
+    .calc-btn{
+      background: #feece0; font-size:1.32rem; border:none; border-radius:9px; color:#402a23;
+      font-weight:600; user-select: none; cursor:pointer; box-shadow:0 2px 7px #0001;
+      transition: background .18s;
+    }
+    .calc-btn:hover{background:#ffe0bf;}
+    .calc-display{width:214px;text-align:right;background:#e6f6ff;color:#2760b1;
+      font-size:1.3em; padding:12px 8px; border-radius:7px; margin:0 auto 13px auto;
+      font-family:'Consolas',monospace;}
+    /* Dice Probability */
+    .dice-sec{ text-align:center;padding-top:6px;}
+    .dice-btn{padding:8px 14px;background:#67be8a;color:#fff;border:none;border-radius:7px;cursor:pointer;margin:0 6px;font-size:1rem;font-weight:600;}
+    .dice-btn:hover{background:#3e9c55;}
+    .dice-roll{font-size:2rem;color:#145d36;font-family:'Arial Black',Arial,sans-serif;margin: 11px;}
+    .dice-res{margin-top:5px;color:#407c58;}
+    /* Date diff */
+    .date-sec label{display:block;margin:10px 0 2px 0;}
+    .date-res{margin-top:7px;font-size:1.1rem;color:#506d8d;}
+    .footer{margin:21px 0 8px 0;opacity:0.4;text-align:center;font-size:0.97rem;}
+    @media(max-width:400px){.suite-box{padding:8px 3vw 10px 3vw;}}
+  </style>
+</head>
+<body>
+  <h1>🧮 Animated Calculator Suite</h1>
+  <div class="suite-box">
+    <div class="nav-tabs">
+      <div class="s-tab selected" data-stab="calc">Standard</div>
+      <div class="s-tab" data-stab="dice">Dice Prob</div>
+      <div class="s-tab" data-stab="date">Date Diff</div>
+    </div>
+    <!-- Standard Calculator -->
+    <div class="s-content active" id="calc">
+      <div class="calc-display" id="calc-display">0</div>
+      <div class="calc-keys">
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn" onclick="calcInput('/')">÷</button>
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn" onclick="calcInput('*')">×</button>
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn" onclick="calcInput('-')">−</button>
+        <button class="calc-btn" onclick="calcInput('0')">0</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+        <button class="calc-btn" onclick="calcInput('C')">C</button>
+        <button class="calc-btn" onclick="calcInput('+')">+</button>
+      </div>
+      <button class="calc-btn" style="width:214px;margin:13px auto 0 auto;display:block;background:#b8e1fc;font-size:1.15rem;" onclick="calcInput('=')">=</button>
+    </div>
+    <!-- Dice Probability -->
+    <div class="s-content" id="dice">
+      <div class="dice-sec">
+        Dice sides: <input type="number" min="2" max="100" value="6" id="dice-sides" style="width:48px;">
+        Rolls: <input type="number" min="1" max="50" value="1" id="dice-rolls" style="width:48px;">
+        <button class="dice-btn" onclick="rollDice()">Roll</button>
+        <div class="dice-roll" id="dice-roll">🎲</div>
+        <div class="dice-res" id="dice-prob"></div>
+      </div>
+    </div>
+    <!-- Date Difference -->
+    <div class="s-content" id="date">
+      <div class="date-sec">
+        <label>From: <input type="date" id="date1"></label>
+        <label>To: <input type="date" id="date2"></label>
+        <button class="dice-btn" style="background:#9ab6f9;" onclick="dateDiff()">Calculate</button>
+        <div class="date-res" id="date-out"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Suites, animation, and practical tools</div>
+  <script>
+    // Tabs
+    document.querySelectorAll('.s-tab').forEach(tab=>{
+      tab.onclick=function(){
+        document.querySelectorAll('.s-tab').forEach(x=>x.classList.remove('selected'));
+        this.classList.add('selected');
+        let t = this.getAttribute('data-stab');
+        document.querySelectorAll('.s-content').forEach(x=>x.classList.remove('active'));
+        document.getElementById(t).classList.add('active');
+      }
+    });
+    // Standard Calculator
+    let calcVal = "0", calcOperator = null, calcFirstVal = null, calcReset = false;
+    function calcInput(val){
+      let disp = document.getElementById("calc-display");
+      if(val>="0" && val<="9" || val=="."){
+        if(calcVal=="0" && val!="." || calcReset) calcVal=val, calcReset=false;
+        else if(val=="." && calcVal.includes(".")) return;
+        else calcVal+=val;
+      }else if("+-*/".includes(val)){
+        calcFirstVal= parseFloat(calcVal); calcOperator=val; calcReset=true;
+      }else if(val=="C"){
+        calcVal="0";calcOperator=null;calcFirstVal=null;calcReset=false;
+      }else if(val=="=" && calcOperator){
+        let second = parseFloat(calcVal);
+        let result = {"+":(a,b)=>a+b,"-":(a,b)=>a-b,"*":(a,b)=>a*b,"/":(a,b)=>a/b}[calcOperator](calcFirstVal,second);
+        calcVal = (Math.round(result*1e10)/1e10).toString();
+        calcOperator = null;calcReset=true;
+      }
+      disp.textContent = calcVal;
+    }
+    // Dice Probability Calculator
+    function fact(n){for(var a=1,i=2;i<=n;i++)a*=i;return a;}
+    function binom(n,k){return fact(n)/(fact(k)*fact(n-k));}
+    function rollDice(){
+      let sides=+document.getElementById("dice-sides").value,rolls=+document.getElementById("dice-rolls").value;
+      let results=[];
+      for(let i=0;i<rolls;++i)results.push(Math.floor(Math.random()*sides)+1);
+      document.getElementById("dice-roll").textContent = results.join(", ");
+      let pOne = 1/sides, prob = Math.round((1-Math.pow(1-pOne,rolls))*1000)/10;
+      document.getElementById("dice-prob").textContent =
+        `Chance at least one '1' in ${rolls} roll(s) of d${sides}: ${prob}%`;
+    }
+    // Date difference calculator
+    function dateDiff(){
+      let d1=new Date(document.getElementById("date1").value),d2=new Date(document.getElementById("date2").value);
+      if(isNaN(d1)||isNaN(d2))return;
+      let diff = Math.abs(d2-d1), days = Math.floor(diff/(1000*3600*24)),
+          weeks=Math.floor(days/7), months=Math.floor(days/30.44), years=Math.floor(days/365.25);
+      document.getElementById("date-out").textContent=
+        `${days} days (${weeks} weeks, ~${months} months, ~${years} years)`;
+    }
+    // Default date fields for date diff
+    let today = new Date(), lastMonth = new Date(today); lastMonth.setMonth(today.getMonth()-1);
+    document.getElementById("date1").value = lastMonth.toISOString().substr(0,10);
+    document.getElementById("date2").value = today.toISOString().substr(0,10);
+  </script>
+</body>
+</html>
