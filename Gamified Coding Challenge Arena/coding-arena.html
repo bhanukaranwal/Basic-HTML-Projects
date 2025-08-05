@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Coding Challenge Arena</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg,#b2fffa 0%,#c2c6f7 100%);
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      color: #2a1d2e;
+    }
+    h1 { margin: 30px 0 12px 0; font-size: 2.1rem; letter-spacing: .7px;}
+    .arena-box {
+      background: rgba(255,255,255,0.97); padding: 27px 24px 22px 24px;
+      border-radius: 16px; box-shadow: 0 4px 22px #af92ba14;
+      min-width: 340px; max-width: 99vw; margin-bottom: 18px;
+    }
+    .score-bar {
+      background: #e4d5fc; border-radius:7px; padding: 11px 18px; font-size:1.11rem;
+      margin-bottom: 11px; display:flex;justify-content:space-between;align-items:center;
+    }
+    .challenge-box {
+      background:#fffbe7; color:#20385f; border-radius: 10px; min-height:80px;
+      padding:13px 11px; font-size:1.12rem;margin-bottom:14px; box-shadow:0 2px 8px #abbbdd18;
+    }
+    input[type=text] {
+      border-radius:5px; padding:6px 9px; border: 1px solid #d4b6ba; width:97%; font-size:1.08rem;
+      margin:7px 0 0 0;
+    }
+    .btn {
+      background:#b49bfc; color:#fff; font-weight:600; border:none; border-radius:7px;
+      font-size:1rem; padding:8px 18px; margin:11px 10px 0 0; cursor:pointer;
+      transition: background 0.15s;
+    }
+    .btn:hover{background:#9265ef;}
+    .feedback{font-size: 1.1rem; margin: 7px 0 0 0;}
+    .leaderboard {
+      margin:12px 0; background:#fafafb;border-radius:10px;padding:10px 13px;box-shadow:0 2px 8px #aaa2;
+      font-size:1.09rem;
+    }
+    .footer{margin:23px 0 10px 0;text-align:center;opacity:0.37;}
+    @media(max-width:410px){.arena-box{padding:7px 2vw 10px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🕹️ Coding Challenge Arena</h1>
+  <div class="arena-box">
+    <div class="score-bar">
+      <span>Score: <b id="score">0</b></span>
+      <span>Streak: <b id="streak">0</b></span>
+      <span>Highscore: <b id="high">0</b></span>
+    </div>
+    <div class="challenge-box" id="challengeBox"></div>
+    <form id="arenaForm" autocomplete="off">
+      <input type="text" id="answer" placeholder="Type your answer here" required autocomplete="off"/>
+      <button class="btn" type="submit">Submit</button>
+    </form>
+    <div class="feedback" id="feedback"></div>
+    <div class="leaderboard">
+      <b>Arena Leaderboard</b>
+      <ol id="lb" style="margin:6px 0 0 22px;font-size:0.97em;"></ol>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Type fast, score high, and compete with yourself!</div>
+  <script>
+    // --- Challenge pool
+    let challenges = [
+      { q:"What is 17 + 24?", a:"41" },
+      { q:"Reverse the string: 'arena'", a:"anera" },
+      { q:"What is the factorial of 5?", a:"120" },
+      { q:"First letter of 'python'", a:"p" },
+      { q:"What is 12 × 11?", a:"132" },
+      { q:"Sort: [3, 1, 4]", a:"1,3,4" },
+      { q:"What is 2⁵?", a:"32" },
+      { q:"Binary of 6?", a:"110" },
+      { q:"Last char of 'github'", a:"b" },
+      { q:"What is 42 mod 7?", a:"0" },
+      { q:"Sum of digits in 237?", a:"12" },
+      { q:"8 × 9 + 7 = ?", a:"79" },
+      { q:"What is 2³ + 5 ?", a:"13" },
+      { q:"Lowercase 'HELLO'", a:"hello" },
+      { q:"Sort letters: 'plan'", a:"alnp" }
+    ];
+
+    // --- State and elements
+    let curr = 0, score = 0, streak = 0, highscore = 0;
+    const qBox = document.getElementById("challengeBox"),
+          scoreBox = document.getElementById("score"),
+          streakBox = document.getElementById("streak"),
+          highBox = document.getElementById("high"),
+          fb = document.getElementById("feedback"),
+          lb = document.getElementById("lb");
+
+    // --- Shuffle challenges for each session
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+    shuffle(challenges);
+
+    function loadChallenge(){
+      curr = (curr+1) % challenges.length;
+      qBox.textContent = challenges[curr].q;
+      document.getElementById('answer').value = "";
+      fb.textContent = "";
+    }
+    function updateScore(){
+      scoreBox.textContent = score;
+      streakBox.textContent = streak;
+      if(score > highscore) highscore = score;
+      highBox.textContent = highscore;
+      // Update leaderboard (localStorage)
+      let records = JSON.parse(localStorage.getItem("challengeArena")||"[]");
+      if(score>0 && (records.length<5||score>records[records.length-1].score)){
+        let date = new Date().toLocaleDateString(), rec={score,streak,date};
+        records.push(rec); records.sort((a,b)=>b.score-a.score); if(records.length>5)records=records.slice(0,5);
+        localStorage.setItem("challengeArena",JSON.stringify(records));
+      }
+      let records2 = JSON.parse(localStorage.getItem("challengeArena")||"[]");
+      lb.innerHTML = records2.map(r=>`<li>${r.score} pts, ${r.streak}x (${r.date})</li>`).join("");
+    }
+    document.getElementById("arenaForm").onsubmit=function(e){
+      e.preventDefault();
+      let ans=document.getElementById("answer").value.trim().toLowerCase(),
+          corr=challenges[curr].a.trim().toLowerCase();
+      if(ans===corr){
+        score+=10+streak*2; ++streak;
+        fb.innerHTML = '✅ <b>Correct!</b> (+10)';
+        loadChallenge();
+      } else {
+        fb.innerHTML = `❌ <b>Wrong.</b> Correct: <b>${challenges[curr].a}</b>. Streak reset!`;
+        score=0; streak=0;
+        shuffle(challenges); curr=-1; // new order
+        setTimeout(loadChallenge,550);
+      }
+      updateScore();
+    }
+    // Load leaderboard on init
+    updateScore();
+    loadChallenge();
+  </script>
+</body>
+</html>
