@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sound Board Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#dbe4ff 0%,#ffd6e0 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;
+      display:flex;flex-direction:column;align-items:center;color:#2d274a;}
+    h1 {margin:35px 0 8px 0;font-size:2.1rem;color:#9546e7;}
+    .sb-box {
+      background:rgba(255,255,255,0.97);padding:28px 12px 14px 12px;
+      border-radius:18px;box-shadow:0 4px 22px #92a4d821;
+      width:99vw;max-width:430px;display:flex;flex-direction:column;align-items:center;
+    }
+    .sound-grid {display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:10px 0 8px 0;}
+    .tile {
+      background:#efebfa;padding:24px 0 12px 0;border-radius:13px;box-shadow:0 2px 10px #bfb4ce22;
+      font-size:2.1em;color:#9738b7;text-align:center;cursor:pointer;position:relative;
+      transition:background .11s;user-select:none;
+    }
+    .tile:hover { background:#f7caff;}
+    .tile.dragover {background:#bef3dc;}
+    .del-btn {
+      position:absolute;top:8px;right:7px;font-size:.9em;background:none;color:#b85e69;
+      border:none;border-radius:7px;cursor:pointer;padding:1px 7px;transition:background .11s;
+      z-index:10;
+    }
+    .del-btn:hover { background:#ffe0e9;}
+    .add-zone {
+      background:#c8faf1;color:#287a39;border:2.2px dashed #26d69d;
+      border-radius:11px;min-height:52px;display:flex;align-items:center;justify-content:center;
+      font-size:1.09em;font-weight:700;cursor:pointer; transition:background .17s;
+      margin:9px 0 3px 0;
+    }
+    .add-zone.dragging {background:#e8e6ff;}
+    .sounds-list {display:flex;gap:9px;flex-wrap:wrap;justify-content:center;padding:11px;}
+    .sicon {
+      font-size:2em;padding:8px 8px;background:#fffbe7;border-radius:7px;cursor:grab;border:1px solid #eed5f3;transition:background .13s;}
+    .sicon:active {background:#fbeef4;}
+    .footer{margin:21px 0 6px 0;text-align:center;opacity:.37;font-size:.97em;}
+    @media(max-width:430px){.sb-box{padding:8px 2vw 7px 2vw;}.sound-grid{gap:6px;}}
+  </style>
+</head>
+<body>
+  <h1>🔊 Sound Board</h1>
+  <div class="sb-box">
+    <div class="sound-grid" id="grid"></div>
+    <div class="add-zone" id="addZone">+ Drag here to add a sound</div>
+    <div class="sounds-list" id="soundIcons"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Drag, drop, and play!</div>
+  <script>
+    // Sample built-in sounds (royalty-free, short clips)
+    const SOUNDS = [
+      {icon:"🥁", label: "Drum", src:"https://assets.mixkit.co/sfx/download/mixkit-drum-beat-1623.wav"},
+      {icon:"🔔", label: "Bell", src:"https://assets.mixkit.co/sfx/download/mixkit-fairytale-game-notification-871.wav"},
+      {icon:"👏", label: "Clap", src:"https://assets.mixkit.co/sfx/download/mixkit-small-crowd-clapping-463.wav"},
+      {icon:"🎸", label: "Guitar", src:"https://assets.mixkit.co/sfx/download/mixkit-acoustic-guitar-strum-2332.wav"},
+      {icon:"😂", label: "Laugh", src:"https://assets.mixkit.co/sfx/download/mixkit-cartoon-breath-laugh-527.wav"},
+      {icon:"🐶", label: "Dog", src:"https://assets.mixkit.co/sfx/download/mixkit-dog-barking-twice-1.wav"},
+      {icon:"🚗", label: "Honk", src:"https://assets.mixkit.co/sfx/download/mixkit-classic-car-horn-1555.wav"},
+      {icon:"🦅", label: "Eagle", src:"https://assets.mixkit.co/sfx/download/mixkit-bird-scream-1547.wav"},
+      {icon:"🥁", label:"Drum2",src:"https://assets.mixkit.co/sfx/download/mixkit-fast-drum-roll-681.wav"}
+    ];
+    function getTiles(){ return JSON.parse(localStorage.soundBoardTiles||'[]'); }
+    function setTiles(t){ localStorage.soundBoardTiles=JSON.stringify(t); }
+    function playSound(src){
+      let audio = new Audio(src); audio.currentTime=0; audio.play();
+    }
+    function renderBoard(){
+      let tiles = getTiles(), grid=document.getElementById('grid');
+      grid.innerHTML = tiles.map((t,i)=>`
+        <div class="tile" draggable="true" data-idx="${i}">
+          <button class="del-btn" onclick="delTile(${i})">&times;</button>
+          <span class="tile-emoji">${SOUNDS.find(s=>s.label==t.label)?.icon||"🔊"}</span>
+          <div style="font-size:.87em;font-weight:600;">${t.label}</div>
+        </div>`).join('');
+      setDragEvents();
+    }
+    function renderIcons(){
+      document.getElementById('soundIcons').innerHTML = SOUNDS.map((s,i)=>
+        `<span class="sicon" draggable="true" data-si="${i}" title="${s.label}">${s.icon}</span>`
+      ).join('');
+    }
+    window.delTile = function(idx){
+      let tiles = getTiles();
+      tiles.splice(idx,1);
+      setTiles(tiles); renderBoard();
+    };
+    // Drag&Drop
+    function setDragEvents(){
+      // Drag from icons to grid/add-zone
+      document.querySelectorAll('.sicon').forEach(icon=>{
+        icon.ondragstart = e=>{
+          e.dataTransfer.setData('sound',icon.dataset.si);
+          document.getElementById('addZone').classList.add('dragging');
+        };
+        icon.ondragend = ()=>document.getElementById('addZone').classList.remove('dragging');
+      });
+      document.getElementById('addZone').ondragover = e=>{e.preventDefault();};
+      document.getElementById('addZone').ondrop = e=>{
+        document.getElementById('addZone').classList.remove('dragging');
+        let idx = +e.dataTransfer.getData('sound');
+        if(isNaN(idx))return;
+        let tiles = getTiles();
+        tiles.push({...SOUNDS[idx]});
+        setTiles(tiles); renderBoard();
+      };
+      // Play on click
+      document.querySelectorAll('.tile').forEach(tile=>{
+        tile.onclick = e=>{
+          if(!e.target.classList.contains("del-btn")){
+            let tiles = getTiles(), s = SOUNDS.find(s=>s.label==tiles[tile.dataset.idx].label);
+            if(s) playSound(s.src);
+          }
+        };
+        // Drag to reorder
+        tile.ondragstart = e=>{
+          e.dataTransfer.setData('from', tile.dataset.idx);
+        };
+        tile.ondragover = e=>{e.preventDefault();tile.classList.add('dragover');}
+        tile.ondragleave = ()=>tile.classList.remove('dragover');
+        tile.ondrop = e=>{
+          tile.classList.remove('dragover');
+          let from = +e.dataTransfer.getData('from'), to = +tile.dataset.idx, tiles = getTiles();
+          if(isNaN(from)||isNaN(to)||from==to)return;
+          let [moved]=tiles.splice(from,1);
+          tiles.splice(to,0,moved);
+          setTiles(tiles); renderBoard();
+        }
+      });
+    }
+    // Initial render
+    renderIcons();
+    renderBoard();
+  </script>
+</body>
+</html>
