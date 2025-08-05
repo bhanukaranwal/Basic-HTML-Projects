@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Virtual Pet Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#ffe4ed 0%,#b3ffd9 100%); font-family:'Segoe UI',Arial,sans-serif;
+      margin:0; min-height:100vh; color:#293c2e; display:flex;flex-direction:column;align-items:center;}
+    h1 {margin-top:37px; font-size:2.2rem; color:#6ca581;letter-spacing:.7px;}
+    .main-box {
+      background:rgba(255,255,255,0.97); padding:30px 19px 15px 19px; border-radius:15px;
+      box-shadow:0 4px 18px #3cab7b19; width:98vw; max-width:420px; margin-bottom:18px; text-align:center;}
+    .pet {
+      font-size:3em; border-radius:50%; background:#c1fae5;
+      width:110px; height:110px; margin:0 auto 16px auto; line-height:110px;
+      box-shadow:0 5px 30px #3cab7b21;transition:background .18s;}
+    .pet.happy { background:#f6ffac; }
+    .pet.sad { background:#f7acc3; }
+    .pet.sleep { background:#b6bef4;}
+    .stats {display:flex;justify-content:center;gap:17px;margin:9px 0;}
+    .stat {
+      background:#e9fdf5;border-radius:8px;box-shadow:0 1px 5px #abbdd6;
+      padding:7px 11px;font-size:.99em;}
+    .mood {font-weight:bold;font-size:1.07em;margin-top:11px;}
+    .actions {display:flex;gap:13px;justify-content:center;margin:20px 0;}
+    .btn {
+      background:#7be690;color:#183c20;border:none;border-radius:9px;font-weight:700;
+      font-size:1em;padding:9px 13px;cursor:pointer;transition:background .15s;}
+    .btn:hover{background:#41c46f;}
+    .log {
+      background:#fffde7;border-radius:9px;padding:8px 14px;font-size:.97em;
+      color:#966389;min-height:35px;margin-bottom:8px; box-shadow:0 1px 8px #93c5b321;}
+    .footer{margin:20px 0 7px 0;text-align:center;opacity:.41;font-size:.98rem;}
+    @media(max-width:430px){.main-box{padding:10px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>🐾 Virtual Pet Game</h1>
+  <div class="main-box">
+    <div id="pet" class="pet happy" title="Your pet!">😺</div>
+    <div class="mood" id="moodText">Happy</div>
+    <div class="stats">
+      <div class="stat">Hunger:<br><span id="hunger">50</span></div>
+      <div class="stat">Fun:<br><span id="fun">50</span></div>
+      <div class="stat">Energy:<br><span id="energy">50</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="feedPet()">🍖 Feed</button>
+      <button class="btn" onclick="playPet()">🎲 Play</button>
+      <button class="btn" onclick="sleepPet()">💤 Sleep</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Try to keep your pet alive and happy!</div>
+  <script>
+    let pet = {hunger:50, fun:50, energy:50, mood:"Happy", emoji:"😺"};
+    // Load saved pet if present
+    if(localStorage.petGame){ try{ Object.assign(pet,JSON.parse(localStorage.petGame)); }catch{} }
+    const display = ()=> {
+      document.getElementById('hunger').textContent=pet.hunger;
+      document.getElementById('fun').textContent=pet.fun;
+      document.getElementById('energy').textContent=pet.energy;
+      const petDiv = document.getElementById('pet');
+      let m = pet.mood, e=pet.emoji;
+      if(pet.hunger<30) m="Hungry", e="😿";
+      if(pet.fun<30) m="Bored", e="😾";
+      if(pet.energy<30) m="Tired", e="😴";
+      if(pet.hunger>70 && pet.fun>70 && pet.energy>70) m="Very Happy", e="😻";
+      if(pet.hunger<20||pet.fun<20||pet.energy<20) m="Sad", e="😢";
+      if(pet.hunger===0||pet.fun===0||pet.energy===0){ m="Game Over"; e="💀"; }
+      pet.mood = m; pet.emoji = e;
+      petDiv.textContent = e;
+      petDiv.className = 'pet ' + (m==="Very Happy"?"happy":m==="Sad"?"sad":m==="Tired"?"sleep":"");
+      document.getElementById('moodText').textContent = m;
+      localStorage.petGame = JSON.stringify(pet);
+    };
+    function log(text){ document.getElementById('log').textContent = text; }
+    function feedPet(){
+      if(pet.hunger>=98){log("Pet is already full!");return;}
+      pet.hunger = Math.min(100, pet.hunger+18);
+      pet.energy = Math.max(0, pet.energy-4); // Eating is tiring!
+      log("You feed your pet. Yum!");
+      display();
+    }
+    function playPet(){
+      if(pet.fun>=98){log("Pet doesn't want to play.");return;}
+      if(pet.energy<=12){log("Too tired to play!");return;}
+      pet.fun = Math.min(100, pet.fun+17);
+      pet.energy = Math.max(0, pet.energy-13);
+      pet.hunger = Math.max(0, pet.hunger-5);
+      log("Your pet plays and is happier!");
+      display();
+    }
+    function sleepPet(){
+      if(pet.energy>=98){log("Already rested!");return;}
+      pet.energy = Math.min(100, pet.energy+23);
+      pet.hunger = Math.max(0, pet.hunger-8);
+      log("Your pet sleeps peacefully.");
+      display();
+    }
+    // Stats decay over time
+    setInterval(()=>{
+      if(pet.mood==="Game Over")return;
+      pet.hunger = Math.max(0,pet.hunger-1);
+      pet.fun = Math.max(0,pet.fun-1);
+      pet.energy = Math.max(0,pet.energy-1.2);
+      display();
+    },3500);
+    display();
+  </script>
+</body>
+</html>
