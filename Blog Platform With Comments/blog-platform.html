@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MyBlog – Minimal Blog Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(120deg,#fae9e5 0%, #b7dbfd 100%);
+      font-family: 'Segoe UI', Arial, sans-serif; color: #2d2f40;
+      min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { font-size:2.2rem;margin:35px 0 11px 0;letter-spacing:.8px;color:#3b63b6;}
+    .main-box {
+      background: rgba(255,255,255,0.97); padding:28px 19px 13px 19px;
+      border-radius: 14px; box-shadow: 0 4px 17px #7d49ed14;
+      width: 98vw; max-width:500px; margin-bottom:22px;
+    }
+    .post-form label { display:block; font-weight:600; margin-top:11px;}
+    .post-form input[type=text], .post-form textarea {
+      width:98%; font-size:1.12em; border-radius:7px; border:1.5px solid #cfd1e7; 
+      padding:6px 11px; margin-top:4px; margin-bottom:7px;
+      font-family:inherit;
+    }
+    .post-form button {
+      background:#3e85e1;color:#fff;border:none; border-radius:8px; font-size:1em; 
+      padding:7px 23px; font-weight:700; cursor:pointer; margin-top:7px; transition:background .16s;
+    }
+    .post-form button:hover { background:#194388; }
+    .posts-list { margin:18px 0 0 0; }
+    .post {
+      background: #f4f3ff; border-radius:12px; box-shadow:0 2px 9px #cabcea12;
+      padding:12px 14px 7px 14px; margin-bottom:18px; position:relative; animation:fade-in .7s;
+    }
+    .post-title { font-weight:700; font-size:1.17em; color:#482fa1; margin:0 0 3px 0;}
+    .post-meta { color:#976cb1; font-size:0.92em; margin-bottom:5px;}
+    .post-body { margin:7px 0 9px 0; white-space:pre-wrap; color:#453d62;}
+    .del-btn {
+      position:absolute;top:8px;right:10px;background:none;border:none;color:#ed579f;
+      font-size:1.3em;cursor:pointer;
+    }
+    .comments-section { margin-top:8px;background:#fff9fa;border-radius:8px;padding:8px 11px;}
+    .comment-form input[type=text] {
+      width:83%;border-radius:5px;padding:5px 10px;
+      border:1px solid #f0b9e1; font-size:1em;margin-right:8px;
+    }
+    .comment-form button {
+      background:#e5afd9;border:none;color:#fff;padding:4px 13px;border-radius:6px; font-weight:600; cursor:pointer;
+    }
+    .comment-list { list-style:none;padding:0;margin:7px 0 0 0;}
+    .comment-list li { font-size:.96em;color:#775673;background:#fae6f7;border-radius:5px; padding:4px 8px;margin-bottom:3px;}
+    @keyframes fade-in {from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
+    .footer{margin:22px 0 7px 0;text-align:center;opacity:.38;font-size:.97em;}
+    @media(max-width:490px){.main-box{padding:10px 2vw 8px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>📝 MyBlog</h1>
+  <div class="main-box">
+    <form class="post-form" id="postForm" autocomplete="off">
+      <label>Title: <input type="text" id="title" maxlength="60" required/></label>
+      <label>Content: <textarea id="body" rows="3" maxlength="1000" required></textarea></label>
+      <button type="submit">Post</button>
+    </form>
+    <div class="posts-list" id="posts"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Posts and comments are saved in your browser</div>
+  <script>
+    // Utilities
+    function getPosts() {
+      return JSON.parse(localStorage.getItem('blogposts')||'[]');
+    }
+    function setPosts(posts) {
+      localStorage.setItem('blogposts',JSON.stringify(posts));
+    }
+    function plant() {
+      let posts = getPosts();
+      posts.sort((a,b)=>b.date-a.date);
+      let html = '';
+      posts.forEach((p, idx) => {
+        html += `<div class="post">
+          <button class="del-btn" title="Delete" onclick="delPost(${p.id})">&times;</button>
+          <div class="post-title">${p.title}</div>
+          <div class="post-meta">${new Date(p.date).toLocaleString()}</div>
+          <div class="post-body">${p.body}</div>
+          <div class="comments-section">
+            <form class="comment-form" onsubmit="event.preventDefault();addComment(${p.id},this);">
+              <input type="text" placeholder="Add a comment..." maxlength="120" required/>
+              <button type="submit">💬</button>
+            </form>
+            <ul class="comment-list">
+              ${p.comments.map(c=>`<li>${c}</li>`).join('')}
+            </ul>
+          </div>
+        </div>`;
+      });
+      document.getElementById('posts').innerHTML = html || "<div style='text-align:center;color:#b37;'>No posts yet.</div>";
+    }
+    window.delPost = function(id) {
+      let posts = getPosts().filter(p=>p.id!==id);
+      setPosts(posts); plant();
+    };
+    window.addComment = function(id, form){
+      const txt = form.querySelector('input').value.trim();
+      if(!txt) return;
+      let posts = getPosts();
+      let p = posts.find(x=>x.id===id);
+      if(p){ p.comments.push(txt); setPosts(posts); plant(); }
+    };
+    document.getElementById('postForm').onsubmit = function(e){
+      e.preventDefault();
+      let posts = getPosts();
+      posts.push({id:Date.now(),title:this.title.value.trim(),body:this.body.value.trim(),date:Date.now(), comments:[]});
+      setPosts(posts); this.title.value=''; this.body.value=''; plant();
+    };
+    plant();
+  </script>
+</body>
+</html>
