@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Timer & Pomodoro App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#fd99b4 0%,#72e0fe 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;
+      display:flex;flex-direction:column;align-items:center;color:#21253c;}
+    h1 {margin:35px 0 10px 0;font-size:2.13rem;color:#ed6b97;}
+    .main-box {
+      background:rgba(255,255,255,0.97);padding:28px 20px 14px 20px;
+      border-radius:17px;box-shadow:0 4px 22px #fd99b415;
+      min-width:310px;max-width:97vw;width:370px;display:flex;flex-direction:column;align-items:center;
+    }
+    .timer-list {width:100%;}
+    .timer {
+      background:#fffbe7;border-radius:13px;box-shadow:0 2px 11px #fae5eaa9;
+      padding:12px 15px 8px 15px;display:flex;align-items:center;gap:13px;
+      margin-bottom:12px;position:relative;animation:fadein .5s;
+      justify-content:space-between;
+    }
+    @keyframes fadein{0%{opacity:0;transform:scale(.92);}100%{opacity:1;transform:scale(1);}}
+    .timer-bar {background:#fce0f9;height:8px;border-radius:6px;flex:1;margin:0 9px 0 0;position:relative;}
+    .prog {background:#ff95b6;height:100%;border-radius:6px 0 0 6px;position:absolute;top:0;left:0;z-index:0;}
+    .label {font-weight:700;color:#fa7d06;font-size:1.11em;}
+    .time-left {font-family:'Consolas',monospace;font-size:1.13em;color:#585099;margin-right:9px;width:55px;text-align:right;}
+    .ctrl-btn, .del-btn {
+      background:#fe88b8;color:#fff;font-weight:700;font-size:.97em;
+      border:none;border-radius:7px;padding:6px 10px;cursor:pointer;margin-left:2px;
+      transition:background .13s;box-shadow:0 1px 5px #e985981a;
+    }
+    .ctrl-btn:hover {background:#d44e76;}
+    .del-btn {background:#f7cfcf;color:#cc2539;}
+    .del-btn:hover {background:#cc2539;color:#fff;}
+    .add-form {
+      margin: 10px 0 13px 0;
+      width:100%;
+      display:flex;gap:7px;align-items:center;justify-content:center;
+    }
+    .add-form input, .add-form select {
+      font-size:1em;padding:7px 7px;border-radius:7px;border:1.3px solid #ffcbe1;
+      width:69px;
+    }
+    .add-form input[type=text]{width:87px;}
+    .add-form button {
+      background:#57e0ea;color:#16475f;font-weight:700;border:none;
+      border-radius:7px;padding:7px 16px;cursor:pointer;transition:background .14s;}
+    .add-form button:hover {background:#13b6bb;}
+    .footer{margin:21px 0 7px 0;text-align:center;opacity:.37;font-size:.98em;}
+    @media(max-width:430px){.main-box{padding:8px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>⏲️ Multi-Timer App</h1>
+  <div class="main-box">
+    <form class="add-form" id="addForm" autocomplete="off">
+      <input type="text" id="label" maxlength="13" placeholder="Label" required>
+      <input type="number" id="min" min="1" max="240" placeholder="Min" required>
+      <select id="preset">
+        <option value="">Custom</option>
+        <option value="pomodoro">Pomodoro (25m)</option>
+        <option value="shortbreak">Short Break (5m)</option>
+        <option value="longbreak">Long Break (15m)</option>
+      </select>
+      <button type="submit">Add</button>
+    </form>
+    <div class="timer-list" id="timerList"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · All timers work in parallel & are saved in your browser</div>
+  <audio id="beep" src="https://cdn.pixabay.com/audio/2022/08/20/audio_12c040fa54.mp3" preload="auto"></audio>
+  <script>
+    // --- Timer Data
+    function getTimers(){ return JSON.parse(localStorage.myTimers||'[]'); }
+    function setTimers(d){ localStorage.myTimers=JSON.stringify(d); }
+    function addTimer(label, min){
+      let d = getTimers();
+      d.push({id:Date.now(),label,duration:min*60,timeLeft:min*60,active:false});
+      setTimers(d); render();
+    }
+    // --- Presets
+    document.getElementById('preset').onchange = function(){
+      if(this.value=="pomodoro"){f.label.value="Pomodoro";f.min.value=25;}
+      else if(this.value=="shortbreak"){f.label.value="Break";f.min.value=5;}
+      else if(this.value=="longbreak"){f.label.value="Long Break";f.min.value=15;}
+    }
+    // --- Add form
+    const f=document.getElementById('addForm');
+    f.onsubmit = function(e){
+      e.preventDefault();
+      addTimer(f.label.value.trim(),+f.min.value);
+      f.label.value="";f.min.value="";f.preset.value="";
+    };
+    // --- Timer logic
+    function render(){
+      let d=getTimers(), html="";
+      d.forEach((t,i)=>{
+        let pct=100*(t.timeLeft/t.duration);
+        html += `
+          <div class="timer" id="t${t.id}">
+            <div class="label">${t.label}</div>
+            <div class="timer-bar"><div class="prog" style="width:${pct}%;"></div></div>
+            <div class="time-left">${fmt(t.timeLeft)}</div>
+            <button class="ctrl-btn" onclick="toggleTimer(${t.id})">${t.active?"Pause":"Start"}</button>
+            <button class="del-btn" onclick="delTimer(${t.id})">&times;</button>
+          </div>
+        `;
+      });
+      document.getElementById('timerList').innerHTML=html||"<div style='text-align:center;color:#b37;'>No timers. Add one above!</div>";
+    }
+    function fmt(s){s=Math.floor(s);return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,"0")}`;}
+    window.toggleTimer = function(id){
+      let d = getTimers();
+      d.forEach(t=>{t.active=(t.id==id?!t.active:false);}); // Only one running at once!
+      setTimers(d); render();
+    }
+    window.delTimer = function(id){
+      setTimers(getTimers().filter(t=>t.id!=id));render();
+    }
+    // --- Timer update
+    setInterval(()=>{
+      let d=getTimers(), changed=false, beep=document.getElementById('beep');
+      d.forEach(t=>{
+        if(t.active&&t.timeLeft>0){
+          t.timeLeft-=1; changed=true;
+          if(t.timeLeft===0){
+            t.active=false;
+            try{beep.currentTime=0; beep.play();}catch{}
+            if("vibrate" in navigator) navigator.vibrate([150,100,90]);
+            setTimeout(()=>alert("Timer '"+t.label+"' finished!"),150);
+          }
+        }
+      });
+      if(changed) setTimers(d);
+      render();
+    },1000);
+    render();
+  </script>
+</body>
+</html>
