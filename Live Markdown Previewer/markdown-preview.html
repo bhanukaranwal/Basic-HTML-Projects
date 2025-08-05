@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Markdown Previewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#f5ebe2 0%,#bccffb 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#232341;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:36px 0 12px 0;font-size:2.14rem;color:#4071d3;}
+    .main-box {
+      background:rgba(255,255,255,0.98);padding:27px 17px 13px 17px;
+      border-radius:15px; box-shadow:0 4px 22px #bccffb4c;
+      min-width:310px;max-width:99vw;width:420px;display:flex;flex-direction:column;align-items:center;
+    }
+    textarea {
+      width:96%;min-height:110px;border-radius:8px; border:1.5px solid #a1a9f7;
+      font-size:1.08em; padding:9px 12px; font-family:inherit;margin-bottom:18px;resize:vertical;
+    }
+    .preview {
+      width:97%; min-height:88px; background:#f6f9ff; border-radius:11px;
+      box-shadow:0 2px 10px #bccffb2c; padding:18px; color:#39496d;
+      text-align:left; transition:background .18s;
+      font-size:1em; margin-bottom:10px;
+    }
+    .footer{margin:23px 0 9px 0;text-align:center;opacity:.41;font-size:.98em;}
+    /* Simple markdown styling */
+    .preview h1{font-size:1.5em;color:#4071d3;}
+    .preview h2{font-size:1.2em;color:#f87e43;}
+    .preview h3{font-size:1.05em;color:#57a377;}
+    .preview ul,.preview ol{margin:8px 0 8px 24px;}
+    .preview blockquote{ border-left:3px solid #afd6c5;margin:9px 0 9px 0;padding-left:11px;color:#29754a;font-style:italic;}
+    .preview code {font-family:monospace;background:#ecf3fa;color:#d1374c;padding:2px 7px;border-radius:4px;}
+    .preview pre {background:#314e6a;color:#f5f5f5;padding:8px 12px;border-radius:6px;font-family:monospace;overflow-x:auto;}
+    @media(max-width:450px){.main-box{padding:9px 2vw 7px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>📝 Live Markdown Previewer</h1>
+  <div class="main-box">
+    <textarea id="input" placeholder="Type markdown here..."># Hello World
+
+Try **bold**, *italic*, `inline code`, or lists:
+
+- Item 1
+- Item 2
+
+> Blockquote
+
+[Link](https://example.com)
+    </textarea>
+    <div class="preview" id="preview"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Instant markdown-to-HTML (no dependencies)</div>
+  <script>
+    // Minimal markdown renderer (demo level, safe subset)
+    function md2html(md){
+      let h = md
+        .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+        .replace(/^\s*[-*+] (.*)$/gm, '<ul><li>$1</li></ul>')
+        .replace(/^\s*\d+\.\s(.*)$/gm, '<ol><li>$1</li></ol>')
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.+?)\*/g, '<i>$1</i>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)]\((([^ )]+)[^)]*)\)/g,'<a href="$2" target="_blank">$1</a>')
+        .replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
+      // Join adjacent ul/li and ol/li
+      h = h.replace(/<\/ul>\s*<ul>/g,'').replace(/<\/ol>\s*<ol>/g,'');
+      return h;
+    }
+    function update(){
+      document.getElementById('preview').innerHTML = md2html(document.getElementById('input').value);
+    }
+    document.getElementById('input').oninput = update;
+    update();
+  </script>
+</body>
+</html>
