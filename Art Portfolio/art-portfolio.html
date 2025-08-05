@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Art Portfolio Gallery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      min-height:100vh; margin:0;
+      background: linear-gradient(120deg,#f9d6e2 0%, #bcf4fc 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display:flex;flex-direction:column;align-items:center;color:#243852;
+    }
+    h1 { margin:35px 0 10px 0; font-size:2.2rem; color:#9456be;}
+    .controls {
+      display:flex; gap:11px; margin-bottom:7px; flex-wrap:wrap; justify-content:center;
+    }
+    .filter-btn {
+      background:#bba2ff;color:#443179;font-weight:600;border:none;padding:7px 20px;
+      border-radius:9px;cursor:pointer;font-size:1em;transition:background .14s, color .13s;
+    }
+    .filter-btn.selected, .filter-btn:hover { background:#442486; color:#fff; }
+    .gallery {
+      width:97vw;max-width:940px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:21px;justify-content:center;
+    }
+    .card {
+      background:#fffde7; border-radius:14px; box-shadow:0 4px 17px #6bb9fc13;
+      padding:12px 11px 6px 11px; display:flex;flex-direction:column;align-items:center;
+      transition: box-shadow .18s, transform .14s;
+      cursor:pointer;animation:fadein .5s;position:relative;
+    }
+    .card:hover { box-shadow:0 9px 23px #be73f82a; transform:scale(1.048);}
+    .art-img {
+      width:120px; height:120px; border-radius:10px; object-fit:cover; background:#eaf1fc;
+      box-shadow:0 2px 9px #cfc8ed48; transition:box-shadow .19s;
+      margin-bottom:13px;
+    }
+    .title { font-weight:700;font-size:1.09em;color:#71579a;text-align:center; }
+    .cat { font-size:0.93em;color:#9db0c8; }
+    .lightbox-bg {
+      display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100;
+      background:rgba(0,0,0,0.79);align-items:center;justify-content:center;
+    }
+    .lightbox-bg.active { display:flex; }
+    .lightbox {
+      background:#fffbe7;border-radius:17px;padding:19px 24px 17px 24px;
+      box-shadow:0 9px 77px #374c7daa;max-width:96vw;max-height:90vh;display:flex;
+      flex-direction:column;align-items:center;position:relative;
+      animation:pop .41s;
+    }
+    @keyframes pop{0%{transform:scale(.8);opacity:0;}100%{transform:scale(1);opacity:1;}}
+    .lb-img {
+      width:280px;max-width:68vw;max-height:43vh;object-fit:contain;border-radius:12px;
+      margin-bottom:17px;
+    }
+    .lb-title {font-weight:700;font-size:1.16em;color:#41497b;margin-bottom:5px;}
+    .lb-cat {color:#c49eb8;margin-bottom:2px;}
+    .lb-desc {font-size:1em;color:#6c608a;max-width:310px;text-align:center;}
+    .close-btn,
+    .nav-btn {
+      position:absolute;top:13px;background:none;border:none;color:#ae54b8;
+      font-size:1.65em;cursor:pointer;z-index:1001;padding:5px 14px;border-radius:9px;
+      transition:background .11s;
+    }
+    .close-btn{right:20px;}
+    .close-btn:hover {background:#fae6fd;}
+    .nav-btn {top:48%;font-size:2.3em;color:#5598e4;}
+    .nav-prev{left:2px;}
+    .nav-next{right:2px;}
+    .footer{margin:22px 0 8px 0;text-align:center;opacity:.38;font-size:.97em;}
+    @media(max-width:480px){.gallery{gap:11px;}.main-box{padding:10px 2vw 7px 2vw;}.lb-img{width:97vw;}}
+    @keyframes fadein {0%{opacity:0;transform:scale(.94);}100%{opacity:1;transform:scale(1);}}
+  </style>
+</head>
+<body>
+  <h1>🎨 Art Portfolio</h1>
+  <div class="controls" id="filters"></div>
+  <div class="gallery" id="gallery"></div>
+  <!-- Lightbox -->
+  <div class="lightbox-bg" id="lbBg">
+    <div class="lightbox" id="lbBox">
+      <button class="close-btn" onclick="closeLb()">&times;</button>
+      <button class="nav-btn nav-prev" id="lbPrev">&#8592;</button>
+      <button class="nav-btn nav-next" id="lbNext">&#8594;</button>
+      <img class="lb-img" id="lbImg" src="" alt=""/>
+      <div class="lb-title" id="lbTitle"></div>
+      <div class="lb-cat" id="lbCat"></div>
+      <div class="lb-desc" id="lbDesc"></div>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Filter, explore, and showcase your art!</div>
+  <script>
+    // --- Demo Portfolio Data ---
+    const ART = [
+      {title:"Sunlit Valley",cat:"Painting",img:"https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",desc:"A calming landscape of a sunny valley."},
+      {title:"Night Skyline",cat:"Photography",img:"https://images.unsplash.com/photo-1465101268181-6085dc0f2f45?auto=format&fit=crop&w=600&q=80",desc:"A cool city skyline at dusk, with bright lights."},
+      {title:"Dream Doodles",cat:"Illustration",img:"https://images.unsplash.com/photo-1458724338480-79bc7a8352e4?auto=format&fit=crop&w=600&q=80",desc:"Abstract line illustration in vibrant hues."},
+      {title:"Modern Tangle",cat:"Painting",img:"https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80",desc:"A splash of textures with an energetic feel."},
+      {title:"Blue Haze",cat:"Photography",img:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",desc:"Oceanic blues in a mystical morning fog."},
+      {title:"Faces",cat:"Illustration",img:"https://images.unsplash.com/photo-1465101178521-c1a9136a7ddb?auto=format&fit=crop&w=600&q=80",desc:"Minimalist faces with expressive lines."},
+      {title:"Pink Expansion",cat:"Painting",img:"https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",desc:"An abstract explosion of pink and gold."},
+      {title:"Joyful Steps",cat:"Photography",img:"https://images.unsplash.com/photo-1454023492550-5696f8ff10e1?auto=format&fit=crop&w=600&q=80",desc:"Children playing with happy feet in the sand."}
+    ];
+    const CATS = ["All",...Array.from(new Set(ART.map(a=>a.cat)))];
+    let active = 0, filtered = ART;
+    function renderFilters(){
+      let html = CATS.map((c,i)=>`<button class="filter-btn${i==active?' selected':''}" onclick="selectCat(${i})">${c}</button>`).join('');
+      document.getElementById('filters').innerHTML = html;
+    }
+    function selectCat(idx){
+      active = idx;
+      filtered = idx==0?ART:ART.filter(a=>a.cat===CATS[idx]);
+      renderFilters(); renderGallery();
+    }
+    function renderGallery(){
+      let html = filtered.map((a,i)=>`
+        <div class="card" onclick="openLb(${i})">
+          <img class="art-img" src="${a.img}" />
+          <div class="title">${a.title}</div>
+          <div class="cat">${a.cat}</div>
+        </div>`
+      ).join('');
+      document.getElementById('gallery').innerHTML = html;
+    }
+    // --- Lightbox ---
+    let lbIndex=0;
+    window.openLb = function(i){
+      lbIndex=i; showLb();
+    };
+    function showLb(){
+      const a = filtered[lbIndex];
+      document.getElementById('lbImg').src = a.img;
+      document.getElementById('lbTitle').textContent = a.title;
+      document.getElementById('lbCat').textContent = a.cat;
+      document.getElementById('lbDesc').textContent = a.desc;
+      document.getElementById('lbBg').classList.add('active');
+      document.getElementById('lbPrev').style.display = lbIndex==0?"none":"";
+      document.getElementById('lbNext').style.display = lbIndex==filtered.length-1?"none":"";
+    }
+    window.closeLb = function(){
+      document.getElementById('lbBg').classList.remove('active');
+    };
+    document.getElementById('lbPrev').onclick = ()=>{ if(lbIndex>0){ lbIndex--; showLb();}};
+    document.getElementById('lbNext').onclick = ()=>{ if(lbIndex<filtered.length-1){ lbIndex++; showLb();}};
+    // Close on bg click or ESC
+    document.getElementById('lbBg').onclick = e=>{
+      if(e.target===document.getElementById('lbBg')) closeLb();
+    };
+    window.addEventListener('keydown',e=>{ if(document.getElementById('lbBg').classList.contains('active')){ if(e.key==='Escape') closeLb(); if(e.key==='ArrowLeft') document.getElementById('lbPrev').click(); if(e.key==='ArrowRight') document.getElementById('lbNext').click(); }});
+    selectCat(0);
+  </script>
+</body>
+</html>
