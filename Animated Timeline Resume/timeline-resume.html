@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Animated Timeline Resume</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background:linear-gradient(120deg,#f6eaff 0%,#fbc2eb 100%);
+      font-family:'Segoe UI',Arial,sans-serif;
+      margin:0; min-height:100vh; color:#322d49;
+      display:flex;flex-direction:column;align-items:center;
+    }
+    h1 { margin:34px 0 11px 0; font-size:2.14rem; color:#843cc7;}
+    .timeline {
+      position:relative;
+      margin: 26px auto 21px auto;
+      width:98vw;max-width:530px;min-height:370px;
+    }
+    .line {
+      position:absolute;top:0;left:28px;width:7px;height:100%;background:#edcbff;border-radius:4px;z-index:0;
+    }
+    .entry {
+      position:relative;
+      margin-bottom:42px;
+      animation:fadein .7s;
+    }
+    .icon-circle {
+      position:absolute;left:0;top:9px;width:44px;height:44px;background:#fffbe7;border-radius:50%;
+      box-shadow:0 4px 16px #7f6caa17;display:flex;align-items:center;justify-content:center;
+      font-size:1.6em;border:3px solid #e5d0fa;
+      z-index:3;
+    }
+    .card {
+      margin-left:66px;
+      background:#fff;
+      border-radius:12px;
+      padding:16px 14px 11px 18px;
+      box-shadow:0 2px 13px #ab89c816;
+      position:relative;
+      transition: background .16s, box-shadow .13s;
+      min-height:58px;
+      animation:slidein .7s;
+    }
+    .date {
+      position:absolute;left:-66px;width:60px;top:12px;
+      font-size:.98em;color:#958fc3;text-align:right;font-weight:700;
+    }
+    .e-title {font-weight:700; color:#843cc7; margin-bottom:5px;}
+    .e-place {color:#b471e8; font-size:.98em;}
+    .e-desc {color:#6e447a; font-size:.98em;margin-top:4px;}
+    .card:hover {background:#faf7ff;box-shadow:0 8px 27px #dcbff884;}
+    @keyframes slidein {from{opacity:0;transform:translateY(60px);}to{opacity:1;transform:none;}}
+    @keyframes fadein {from{opacity:0;}to{opacity:1;}}
+    .footer{margin:23px 0 9px 0;text-align:center;opacity:.39;font-size:.98em;}
+    @media(max-width:600px){
+      .timeline{max-width:98vw;}
+      .card{margin-left:58px;padding:13px 7px 8px 10px;}
+      .icon-circle{width:33px;height:33px;font-size:1.2em;}
+      .date{left:-56px;}
+    }
+  </style>
+</head>
+<body>
+  <h1>📜 Animated Timeline Resume</h1>
+  <div class="timeline">
+    <div class="line"></div>
+    <div class="entry">
+      <div class="icon-circle" style="background:#e7d4fa;">🎓</div>
+      <div class="date">2016-2020</div>
+      <div class="card">
+        <div class="e-title">Computer Science B.Sc.</div>
+        <div class="e-place">Dream University</div>
+        <div class="e-desc">Graduated with honors. Focus: Web & Software Engineering, AI projects.</div>
+      </div>
+    </div>
+    <div class="entry">
+      <div class="icon-circle" style="background:#fbe4e7;">💼</div>
+      <div class="date">2020-2022</div>
+      <div class="card">
+        <div class="e-title">Frontend Developer</div>
+        <div class="e-place">Awesome Software Inc.</div>
+        <div class="e-desc">Built user-friendly apps in React, optimized for mobile, and led two redesigns.</div>
+      </div>
+    </div>
+    <div class="entry">
+      <div class="icon-circle" style="background:#ecfbf2;">🌍</div>
+      <div class="date">2022-2023</div>
+      <div class="card">
+        <div class="e-title">Volunteering & Freelance</div>
+        <div class="e-place">Nonprofit Web Projects</div>
+        <div class="e-desc">Developed charity campaign sites. Mentored new coders worldwide.</div>
+      </div>
+    </div>
+    <div class="entry">
+      <div class="icon-circle" style="background:#faf9e8;">🚀</div>
+      <div class="date">2023-Present</div>
+      <div class="card">
+        <div class="e-title">Full Stack Developer</div>
+        <div class="e-place">NextGen Creatives</div>
+        <div class="e-desc">Leading cross-platform teams, building scalable apps, exploring creative UX.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Easy to customize for your own journey</div>
+</body>
+</html>
