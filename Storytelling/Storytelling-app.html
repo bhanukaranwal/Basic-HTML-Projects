@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prompt-Driven Storytelling</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      font-family: 'Segoe UI', Arial, sans-serif; color: #48230f;
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { font-size: 2.1rem; letter-spacing: 1px; margin: 32px 0 14px 0;}
+    .main-box {
+      background: rgba(255,255,255,0.94); padding: 28px 26px 28px 26px;
+      border-radius: 16px; box-shadow: 0 4px 21px #ad60421a;
+      min-width: 335px; max-width: 99vw; margin-bottom: 22px;
+    }
+    form   { margin-bottom: 10px; }
+    label  { display: block; font-weight: 600; margin-top: 10px; }
+    select, input[type=text] {
+      font-size: 1.02rem; padding: 5px 9px; border-radius: 6px;
+      margin-top: 5px; border: 1px solid #dfaf90;
+      width: 99%; background: #fff7f5;
+    }
+    .btn {
+      background: #ff9966; color: #693a0b; border: none; border-radius: 7px;
+      padding: 9px 22px; font-size: 1rem; font-weight: 600; margin-top: 12px;
+      cursor: pointer; transition: background 0.19s;
+    }
+    .btn:hover{background:#fe6e3a;}
+    .story-box {
+      background: #fff8f2; color: #48412d;
+      border-radius: 14px; margin: 18px 0 0 0; box-shadow: 0 2px 13px #bcb09e21;
+      padding: 23px 15px 17px 15px; min-height: 90px; position: relative;
+    }
+    .illust {
+      display: block; width: 92px; height: 88px; background: #f6d4c3;
+      border-radius: 13px; margin: 0 auto 12px auto; box-shadow: 0 2px 10px #d26c291f;
+      text-align: center; line-height: 88px; font-size: 2.8rem;
+      user-select: none;
+    }
+    .option-btn {
+      margin: 6px 8px 0 0; padding: 7px 18px; border-radius: 6px;
+      background: #f7bb84; border: none; color: #563112; font-size: 1rem;
+      font-weight: 600; cursor: pointer; transition: background 0.14s;
+    }
+    .option-btn:last-child{margin-right:0;}
+    .option-btn:hover { background: #ffad61; }
+    .footer{margin:27px 0 13px 0; font-size:0.98rem; text-align:center; opacity:0.40;}
+    @media(max-width:430px){.main-box{padding:8px 3vw 8px 3vw;}}
+  </style>
+</head>
+<body>
+  <h1>📚 Prompt Story Generator</h1>
+  <div class="main-box">
+    <form id="promptForm" autocomplete="off">
+      <label>Genre:
+        <select id="genre">
+          <option value="fantasy">Fantasy</option>
+          <option value="sci-fi">Sci-Fi</option>
+          <option value="adventure">Adventure</option>
+          <option value="mystery">Mystery</option>
+        </select>
+      </label>
+      <label>Story Prompt (1 line): <input type="text" id="prompt" required placeholder="A talking cat finds a strange box"/></label>
+      <button class="btn" type="submit">Start Story</button>
+    </form>
+    <div class="story-box" id="storyBox">
+      Enter your prompt to begin your story!
+    </div>
+  </div>
+  <div class="footer">
+    All-in-one HTML by YourName · Every path is unique!
+  </div>
+  <script>
+    // Branching templates for genres
+    const storyData = {
+      "fantasy": [
+        {
+          illust: "🐱", text: p => `One day, ${p}. The cat blinks and looks about the enchanted woods.`,
+          options: [
+            {text:"Open the box", next:1}, {text:"Hide behind a mushroom", next:2}
+          ]
+        },
+        {
+          illust: "🗃️", text: _ => "Inside, the box glows bright. A shimmering fairy appears and offers the cat a wish.",
+          options: [
+            {text:"Wish for nine lives", next:3}, {text:"Wish for endless fish", next:4}
+          ]
+        },
+        {
+          illust: "🍄", text: _ => "From behind the giant mushroom, a mysterious shadow passes by, leaving a sparkling trail.",
+          options: [
+            {text:"Follow the trail", next:5}, {text:"Stay hidden", next:6}
+          ]
+        },
+        {
+          illust: "💫", text: _ => "The cat is filled with energy—a hero in the magical land forever.",
+          options: []
+        },
+        {
+          illust: "🐟", text: _ => "The fairy nods and vanishes—delivering an endless supply of golden fish treats.",
+          options: []
+        },
+        {
+          illust: "✨", text: _ => "The cat trails after the sparkles, discovering new wonders in the magical forest.",
+          options: []
+        },
+        {
+          illust: "😺", text: _ => "Staying hidden, the cat enjoys the simple magic of the enchanted woods. The end.",
+          options: []
+        }
+      ],
+      "sci-fi": [
+        {
+          illust:"🤖", text:p=>`On distant Mars, ${p}. A flicker of light appears on the rover's panel.`,
+          options:[
+            {text:"Investigate",next:1},{text:"Contact Mission Control",next:2}
+          ]
+        },
+        {
+          illust:"🚦", text:_=>"The rover tracks the light and finds an alien artifact humming quietly.",
+          options:[
+            {text:"Scan it",next:3},{text:"Take a soil sample",next:4}
+          ]
+        },
+        {
+          illust:"📡", text:_=>"Mission Control responds: 'Proceed with caution!' Static buzzes on the radio.",
+          options:[
+            {text:"Proceed anyway",next:3},{text:"Wait for backup",next:5}
+          ]
+        },
+        {
+          illust:"🛸", text:_=>"A small spaceship lands. Peaceful aliens wave hello and offer a new alliance.",
+          options:[]
+        },
+        {
+          illust:"🪨", text:_=>"The sample contains rare crystals, a possible game-changer for science!",
+          options:[]
+        },
+        {
+          illust:"🛰️", text:_=>"Backup arrives from orbit—the discovery makes global headlines.",
+          options:[]
+        }
+      ],
+      "adventure":[
+        {
+          illust:"🏞️", text:p=>`In a lush jungle, ${p}. Suddenly, a hidden map peeks from beneath the leaves.`,
+          options:[
+            {text:"Grab the map",next:1},{text:"Ignore it",next:2}
+          ]
+        },
+        {
+          illust:"🗺️", text:_=>"The map points to a secret cave behind a waterfall!",
+          options:[
+            {text:"Go to cave",next:3},{text:"Throw map away",next:4}
+          ]
+        },
+        {
+          illust:"🌳", text:_=>"Without the map, the journey is tough. Adventure remains... undiscovered.",
+          options:[]
+        },
+        {
+          illust:"💎", text:_=>"Inside the cave, treasures and legends come to life—the adventure is just beginning.",
+          options:[]
+        },
+        {
+          illust:"🌊", text:_=>"As the map floats away, mysterious fish leap and play in the river.",
+          options:[]
+        }
+      ],
+      "mystery":[
+        {
+          illust:"🕵️", text:p=>`It’s midnight—${p}. A strange knock is heard at the old mansion door.`,
+          options:[
+            {text:"Open the door",next:1},{text:"Peek through window",next:2}
+          ]
+        },
+        {
+          illust:"🚪", text:_=>"A shadowy figure slips inside, dropping a torn photograph and fleeing.",
+          options:[
+            {text:"Pick up photograph",next:3},{text:"Chase figure",next:4}
+          ]
+        },
+        {
+          illust:"👓", text:_=>"Peering carefully, you spot a hidden key glinting outside in the garden.",
+          options:[
+            {text:"Take the key",next:5},{text:"Ignore the key",next:6}
+          ]
+        },
+        {
+          illust:"🖼️", text:_=>"The photo reveals a secret code, cracking the old mansion's hidden safe.",
+          options:[]
+        },
+        {
+          illust:"🏃", text:_=>"You chase and catch the figure—it's just the friendly housecat!",
+          options:[]
+        },
+        {
+          illust:"🔑", text:_=>"The key unlocks a forgotten diary, filled with clues about the mansion's history.",
+          options:[]
+        },
+        {
+          illust:"🌙", text:_=>"The garden glows under the moon. The mystery lingers, unsolved... for now.",
+          options:[]
+        }
+      ]
+    };
+
+    let currentPath = [], currentPrompt = '', currentGenre = 'fantasy';
+
+    function renderStory(idx=0){
+      const story = storyData[currentGenre][idx];
+      let box = document.getElementById('storyBox');
+      box.innerHTML = `<div class="illust">${story.illust}</div><div>${typeof story.text==='function' ? story.text(currentPrompt) : story.text}</div>`;
+      if(story.options && story.options.length){
+        box.innerHTML += '<div style="margin-top:16px;">'+story.options.map((o,i)=>
+          `<button class="option-btn" onclick="chooseOption(${idx},${i})">${o.text}</button>`
+        ).join('')+'</div>';
+      } else {
+        box.innerHTML += `<div style="text-align:center;margin-top:15px;"><button class="btn" style="background:#da72ed;" onclick="restartStory()">Try another story</button></div>`;
+      }
+    }
+
+    function chooseOption(idx, optIdx){
+      const story = storyData[currentGenre][idx];
+      currentPath.push(idx);
+      renderStory(story.options[optIdx].next);
+    }
+
+    function restartStory(){
+      currentPath = [];
+      document.getElementById('storyBox').innerHTML = "Enter your prompt to begin your story!";
+    }
+
+    document.getElementById('promptForm').onsubmit = function(e){
+      e.preventDefault();
+      currentPrompt = document.getElementById('prompt').value;
+      currentGenre = document.getElementById('genre').value;
+      currentPath = [];
+      renderStory(0);
+    };
+
+    // Make event handlers global for inline onclick:
+    window.chooseOption = chooseOption;
+    window.restartStory = restartStory;
+  </script>
+</body>
+</html>
