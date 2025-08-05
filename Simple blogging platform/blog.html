@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Blogging Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#ffd6e0 0%,#c3cfe2 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#232e41;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:35px 0 13px 0;font-size:2.11rem;color:#ea588f;}
+    .main-box {
+      background:rgba(255,255,255,0.98);padding:28px 15px 13px 15px;
+      border-radius:16px;box-shadow:0 4px 22px #e780a019;
+      min-width:310px;max-width:98vw;width:420px;display:flex;flex-direction:column;align-items:center;
+    }
+    .form-row {display:flex;flex-direction:column;gap:7px;margin-bottom:16px;width:100%;}
+    .form-row input, .form-row textarea {
+      font-size:1em;padding:7px 10px;border-radius:8px;border:1.2px solid #ffcfd7;
+    }
+    .form-row textarea{min-height:70px;resize:vertical;}
+    .form-row button {
+      background:#ea588f;color:#fff;font-weight:700;border:none;border-radius:7px;
+      padding:8px 0;margin-top:4px;cursor:pointer;transition:background .13s;font-size:1.06em;}
+    .form-row button:hover {background:#b83366;}
+    .list-title {font-weight:700;color:#b83366;margin-bottom:5px;font-size:1.09em;}
+    .posts-list{width:100%;}
+    .post {
+      background:#fcf8fa;border-radius:11px;box-shadow:0 2px 10px #ffd6e044;
+      padding:10px 13px 9px 13px;margin-bottom:13px;position:relative;animation:fadein .48s;}
+    .post-title{font-weight:700;font-size:1.13em;color:#48214a;}
+    .post-date{font-size:.94em;color:#ba6d7b;}
+    .actions{margin-top:2px;}
+    .actions button {
+      background:#ffe3f7;color:#b65a81;border:none;border-radius:6px;padding:3px 12px;
+      cursor:pointer;font-weight:600;margin-right:8px;font-size:.98em;transition:background .1s;}
+    .actions button:hover {background:#fddbe9;}
+    .post-content {margin:9px 0 5px 0;}
+    .export-btn {
+      background:#72e295;color:#fff;font-weight:700;border:none;border-radius:7px;
+      padding:7px 14px;cursor:pointer;transition:background .13s;margin-bottom:16px;}
+    .export-btn:hover {background:#43bc62;}
+    @keyframes fadein{0%{opacity:0;transform:scale(.95);}100%{opacity:1;transform:scale(1);}}
+    .footer{margin:21px 0 9px 0;text-align:center;opacity:.38;font-size:.97em;}
+    @media(max-width:430px){.main-box{padding:9px 2vw 7px 2vw;}}
+    /* Markdown (simple) */
+    .post-content h1{font-size:1.17em;color:#933;}
+    .post-content h2{font-size:1.06em;color:#b47a31;}
+    .post-content ul,.post-content ol{margin:7px 0 7px 25px;}
+    .post-content blockquote{border-left:3px solid #e58dba;padding-left:7px;font-style:italic;}
+    .post-content code{background:#ffecf0;border-radius:4px;padding:2px 6px;}
+  </style>
+</head>
+<body>
+  <h1>📝 Simple Blog</h1>
+  <div class="main-box">
+    <form class="form-row" id="blogForm" autocomplete="off">
+      <input type="text" id="title" maxlength="40" placeholder="Post title" required>
+      <textarea id="body" maxlength="600" placeholder="Write your post in markdown..." required></textarea>
+      <button type="submit" id="submitBtn">Add Post</button>
+    </form>
+    <button class="export-btn" onclick="exportHTML()">Export as HTML</button>
+    <div class="list-title">Blog Posts</div>
+    <div class="posts-list" id="posts"></div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Write, edit, and export your local blog!</div>
+  <script>
+    function getPosts(){return JSON.parse(localStorage.simpleBlogs||'[]');}
+    function setPosts(d){localStorage.simpleBlogs=JSON.stringify(d);}
+    function md2html(md){
+      let h = md
+        .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+        .replace(/^\s*[-*+] (.*)$/gm, '<ul><li>$1</li></ul>')
+        .replace(/^\s*\d+\.\s(.*)$/gm, '<ol><li>$1</li></ol>')
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.+?)\*/g, '<i>$1</i>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)]\((([^ )]+)[^)]*)\)/g,'<a href="$2" target="_blank">$1</a>')
+        .replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
+      h = h.replace(/<\/ul>\s*<ul>/g,'').replace(/<\/ol>\s*<ol>/g,'');
+      return h;
+    }
+    function render(editId){
+      let d = getPosts(), box=document.getElementById('posts');
+      box.innerHTML = d.map(p=>`
+        <div class="post">
+          <div class="post-title">${p.title||"(no title)"}</div>
+          <div class="post-date">${new Date(p.time).toLocaleString()}</div>
+          ${editId===p.id?`
+            <form onsubmit="saveEdit(event,${p.id})">
+              <textarea style="width:97%;min-height:58px;" required>${p.body}</textarea>
+              <button>Save</button>
+              <button type="button" onclick="cancelEdit()">Cancel</button>
+            </form>
+          `:`
+            <div class="post-content">${md2html(p.body||"")}</div>
+            <div class="actions">
+              <button onclick="render(${p.id})">Edit</button>
+              <button onclick="delPost(${p.id})">Delete</button>
+            </div>
+          `}
+        </div>
+      `).reverse().join("") || "<div style='color:#b37;text-align:center;'>No posts yet.</div>";
+    }
+    document.getElementById('blogForm').onsubmit = function(e){
+      e.preventDefault();
+      let d=getPosts();
+      d.push({
+        id:Date.now(),
+        title:this.title.value.trim(),
+        body:this.body.value.trim(),
+        time:Date.now()
+      });
+      setPosts(d);this.reset();render();
+    }
+    window.delPost = function(id){
+      setPosts(getPosts().filter(p=>p.id!==id));render();
+    }
+    window.saveEdit = function(e,id){
+      e.preventDefault();
+      let d=getPosts(),p=d.find(p=>p.id===id),txt=e.target.querySelector('textarea').value;
+      if(p){p.body=txt;p.time=Date.now();setPosts(d);render();}
+    }
+    window.cancelEdit = function(){render();}
+    window.exportHTML = function(){
+      let posts = getPosts(), html = "<h2>Exported Blog</h2>"+
+        posts.map(p=>`<h3>${p.title||"(no title)"}</h3>
+          <div>${md2html(p.body||"")}</div>
+          <small>${new Date(p.time).toLocaleString()}</small><hr>`
+        ).reverse().join("");
+      let blob = new Blob([html],{type:"text/html"});
+      let a = document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download="blog.html";
+      a.click();
+    }
+    render();
+  </script>
+</body>
+</html>
