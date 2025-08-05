@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Batch File Renamer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:linear-gradient(120deg,#e0f2fd 0%,#fad0c4 100%);
+      font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;margin:0;color:#213163;
+      display:flex;flex-direction:column;align-items:center;}
+    h1 {margin:35px 0 13px 0;font-size:2.13rem;color:#639ea0;}
+    .main-box {
+      background:rgba(255,255,255,0.95);padding:27px 14px 12px 14px;
+      border-radius:15px;box-shadow:0 4px 22px #c9e2f27a;
+      width:99vw;max-width:430px;display:flex;flex-direction:column;align-items:center;
+    }
+    .file-row{margin-bottom:16px;}
+    .file-row input[type=file]{padding:4px;}
+    .opts {display:grid;grid-template-columns:1fr 1fr;gap:9px 13px;margin-bottom:13px;}
+    .opts label {font-size:.98em;}
+    .opts input {padding:6px 9px;border-radius:7px;border:1.2px solid #bae7fd;}
+    .opts select {padding:6px 7px;}
+    .rename-btn {
+      background:#639ea0;color:#fff;font-weight:700;border:none;border-radius:8px;
+      padding:8px 24px;margin-bottom:8px;cursor:pointer;transition:background .13s;font-size:1.10em;}
+    .rename-btn:hover {background:#206d6d;}
+    .preview-table {width:99%;margin:8px 0 13px 0;border-collapse:collapse;}
+    .preview-table th,.preview-table td {padding:6px 3px;font-size:.99em;}
+    .preview-table th{color:#568fb7;}
+    .preview-table tr:nth-child(even){background:#faf6ef;}
+    .footer{margin:22px 0 7px 0;text-align:center;opacity:.36;font-size:.98em;}
+    @media(max-width:450px){.main-box{padding:7px 2vw 6px 2vw;}}
+  </style>
+</head>
+<body>
+  <h1>📁 Batch File Renamer</h1>
+  <div class="main-box">
+    <div class="file-row">
+      <input type="file" id="filesIn" multiple>
+    </div>
+    <div class="opts">
+      <label>Prefix: <input id="prefix"></label>
+      <label>Suffix: <input id="suffix"></label>
+      <label>Start #: <input type="number" id="start" min="1" value="1"></label>
+      <label>Find: <input id="find"></label>
+      <label>Replace: <input id="replace"></label>
+      <label>Numbering: 
+        <select id="numbering">
+          <option value="none">None</option>
+          <option value="start">Prefix</option>
+          <option value="end">Suffix</option>
+        </select>
+      </label>
+    </div>
+    <button class="rename-btn" onclick="previewRename()">Preview</button>
+    <div id="tableBox"></div>
+    <button class="rename-btn" onclick="saveZip()" id="saveBtn" style="display:none;">Download ZIP</button>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Rename & download, 100% offline</div>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    let lastFiles = [];
+    function previewRename() {
+      let fs = [...(document.getElementById('filesIn').files||[])];
+      if(!fs.length) { document.getElementById('tableBox').innerHTML = "No files selected."; return;}
+      lastFiles = fs;
+      let pf = document.getElementById('prefix').value||"", sf = document.getElementById('suffix').value||"";
+      let start = +document.getElementById('start').value||1;
+      let find = document.getElementById('find').value||"", repl = document.getElementById('replace').value||"";
+      let numOpt=document.getElementById('numbering').value;
+      let rows = ["<tr><th>Old name</th><th>New name</th></tr>"];
+      fs.forEach((file,i)=>{
+        let name = file.name, ext="", base=name;
+        let dot=name.lastIndexOf(".");
+        if(dot!=-1){ext=name.slice(dot);base=name.slice(0,dot);}
+        if(find) base=base.replaceAll(find,repl);
+        let numtxt = numOpt!=="none"?String(i+start).padStart(2,"0"):"";
+        if(numOpt==="start") base = numtxt + base;
+        if(numOpt==="end") base = base + numtxt;
+        let newName = pf+base+sf+ext;
+        rows.push(`<tr><td>${name}</td><td>${newName}</td></tr>`);
+      });
+      document.getElementById('tableBox').innerHTML = `<table class="preview-table">${rows.join("")}</table>`;
+      document.getElementById('saveBtn').style.display="";
+    }
+    async function saveZip() {
+      let fs = lastFiles;
+      if(!fs.length) return;
+      let pf = document.getElementById('prefix').value||"", sf = document.getElementById('suffix').value||"";
+      let start = +document.getElementById('start').value||1;
+      let find = document.getElementById('find').value||"", repl = document.getElementById('replace').value||"";
+      let numOpt=document.getElementById('numbering').value;
+      let zip = new JSZip();
+      for(let i=0;i<fs.length;i++){
+        let file = fs[i], name = file.name, ext="", base=name;
+        let dot=name.lastIndexOf(".");
+        if(dot!=-1){ext=name.slice(dot);base=name.slice(0,dot);}
+        if(find) base=base.replaceAll(find,repl);
+        let numtxt = numOpt!=="none"?String(i+start).padStart(2,"0"):"";
+        if(numOpt==="start") base = numtxt + base;
+        if(numOpt==="end") base = base + numtxt;
+        let newName = pf+base+sf+ext;
+        let buf = await file.arrayBuffer();
+        zip.file(newName,buf);
+      }
+      let content = await zip.generateAsync({type:"blob"});
+      let a = document.createElement('a');
+      a.href=URL.createObjectURL(content);
+      a.download="renamed_files.zip";
+      a.click();
+    }
+  </script>
+</body>
+</html>
