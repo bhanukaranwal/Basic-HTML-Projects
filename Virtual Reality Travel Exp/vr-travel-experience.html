@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VR Travel Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI',Arial,sans-serif;
+      background: linear-gradient(135deg, #caf0f8, #82eefd 70%);
+      color: #0b355e;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-top: 22px; margin-bottom: 2px;
+      font-size: 2.2rem; letter-spacing: .7px;
+      color: #0077b6;
+      text-shadow: 0 3px 12px #bddafb44;
+    }
+    #main-box {
+      width: 360px; min-height: 480px;
+      background: #fff; border-radius: 18px;
+      box-shadow: 0 4px 22px #23cccc12;
+      margin: 18px 0 24px 0; padding: 21px 15px 18px 15px;
+      display: flex; flex-direction: column; align-items: center;
+      position: relative;
+    }
+    #vr-canvas {
+      display: block;
+      width: 320px; height: 230px; border-radius: 13px;
+      background: #eaf5fb;
+      box-shadow: 0 2px 16px #57e8fd29;
+      margin-bottom: 8px;
+      cursor: grab;
+    }
+    .info-box {
+      position: absolute;
+      top: 28px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.94);
+      color:#0b355e;
+      min-width:170px; max-width:290px;
+      border-radius: 12px; box-shadow: 0 2px 12px #0001;
+      padding: 13px 18px 13px 18px;
+      z-index: 20;
+      font-size: 1.08rem;
+      display: none;
+      animation: fadein .3s;
+    }
+    .info-box.visible{display:block;}
+    .hotspot {
+      position: absolute;
+      width:22px; height:22px; border-radius:50%;
+      background: #fdfa5b; color:#e17739;
+      border:2px solid #ad980b; box-shadow:0 0 13px #fcee98;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 1.15em;
+      cursor: pointer; user-select: none;
+      z-index: 10;
+      transform:translate(-50%,-50%);
+    }
+    .hotspot:hover { background:#fffbd8;}
+    select {
+      font-size:1.05em;padding:5px 13px;border-radius:8px;border:1px solid #b3dae6;margin-bottom: 13px;
+    }
+    .footer{
+      margin:16px 0 11px 0;text-align:center;font-size:0.97em;opacity:0.40;
+    }
+    @media(max-width:400px){#main-box{padding:8px 2vw 8px 2vw;}#vr-canvas{width:94vw;height:38vw;min-height:118px;max-width:96vw;}}
+  </style>
+</head>
+<body>
+  <h1>🌍 VR Travel Experience</h1>
+  <div id="main-box">
+    <label><b>Choose a destination:</b>
+      <select id="locsel">
+        <option value="nyc">New York City</option>
+        <option value="paris">Paris</option>
+        <option value="taj">Taj Mahal</option>
+      </select>
+    </label>
+    <div style="position:relative;">
+      <canvas id="vr-canvas" width="320" height="230"></canvas>
+      <div class="info-box" id="info"></div>
+    </div>
+    <div id="hotspots"></div>
+    <div style="font-size:1em;opacity:0.7;margin:7px 0 0 0;">Click or tap yellow icons for info!</div>
+  </div>
+  <div class="footer">All-in-one HTML by YourName · Explore the world in 360°!</div>
+  <script>
+    // --- 360° image resources (Base64 or URL) ---
+    const LOCATIONS = {
+      nyc: {
+        name: "New York City (Brooklyn Bridge)",
+        img: "https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&w=1000", // panoramic photo
+        hotspots: [
+          { lon: 0, lat: 0.15, label: "Manhattan Skyline", desc: "The iconic skyline of Manhattan, featuring the Empire State Building and more." },
+          { lon: 1.4, lat: 0, label: "Brooklyn Bridge", desc: "Completed in 1883, connects Manhattan and Brooklyn. A marvel of 19th-century engineering!" }
+        ]
+      },
+      paris: {
+        name: "Paris (Eiffel Tower)",
+        img: "https://images.pexels.com/photos/3385152/pexels-photo-3385152.jpeg?auto=compress&w=1000",
+        hotspots: [
+          { lon: 0, lat: 0, label: "Eiffel Tower", desc: "Gustave Eiffel's famous 1889 iron tower, symbolic of Paris throughout the world." },
+          { lon: 1.1, lat: 0.2, label: "River Seine", desc: "The major river running through Paris, offering scenic cruises and views of landmarks." }
+        ]
+      },
+      taj: {
+        name: "Taj Mahal",
+        img: "https://images.pexels.com/photos/278314/pexels-photo-278314.jpeg?auto=compress&w=1000",
+        hotspots: [
+          { lon: 0, lat: 0, label: "Taj Mahal", desc: "Built in the 17th century by Emperor Shah Jahan, this white marble mausoleum is a world wonder." },
+          { lon: 1.2, lat: 0.16, label: "Gardens", desc: "The lush, symmetrical Mughal gardens spread elegantly in front of the Taj Mahal." }
+        ]
+      }
+    };
+
+    // --- Panorama Renderer ---
+    const canvas = document.getElementById('vr-canvas');
+    const ctx = canvas.getContext('2d');
+    let image = new window.Image(), isLoaded=false;
+    let longitude=0, latitude=0, dragging=false, lastX=0, lastY=0;
+
+    function renderPanorama() {
+      if (!isLoaded) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Map canvas pixels to spherical coordinates
+      for (let x = 0; x < canvas.width; x++) {
+        let theta = (x / canvas.width - 0.5) * Math.PI; // horizontal
+        for (let y = 0; y < canvas.height; y++) {
+          let phi = (y / canvas.height - 0.5) * Math.PI; // vertical
+          let lon = longitude + theta * 2;
+          let lat = latitude + phi * 1.5;
+          let u = ((Math.sin(lon) + 1) / 2) * image.width; // horizontal wrap
+          let v = ((Math.sin(lat) + 1) / 2) * image.height;
+          ctx.drawImage(image, u, v, 1,1, x, y, 1,1);
+        }
+      }
+      drawHotspots();
+    }
+
+    // --- Hotspot logic ---
+    function getHotspotScreenCoords(lon, lat) {
+      // Convert lon/lat (in radians) to viewport coords (<=1)
+      let x = 0.5 + Math.sin(lon - longitude) * 0.4;
+      let y = 0.5 + Math.sin(lat - latitude) * 0.42;
+      return { x:x*canvas.width, y:y*canvas.height };
+    }
+    function drawHotspots() {
+      let hsDiv = document.getElementById("hotspots");
+      hsDiv.innerHTML="";
+      if (!image.dataset.curLoc) return;
+      let hsList = LOCATIONS[image.dataset.curLoc].hotspots;
+      hsList.forEach((h,idx)=>{
+        let {x,y}=getHotspotScreenCoords(h.lon,h.lat);
+        let el=document.createElement('div');
+        el.className="hotspot";
+        el.style.left=x+"px";el.style.top=y+"px";
+        el.textContent="i";
+        el.onclick = (e)=>{
+          e.stopPropagation();
+          showInfo(h.label, h.desc);
+        };
+        hsDiv.appendChild(el);
+      });
+    }
+    function showInfo(title, desc){
+      let inf=document.getElementById("info");
+      inf.innerHTML = `<b>${title}</b><br>${desc}`;
+      inf.classList.add("visible");
+      setTimeout(()=>{ inf.classList.remove("visible"); },5800);
+    }
+
+    // --- Panoramic Drag ---
+    canvas.onpointerdown = function(e){
+      dragging=true; lastX=e.clientX; lastY=e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    };
+    canvas.onpointerup = function(e){
+      dragging=false; canvas.releasePointerCapture(e.pointerId);
+    };
+    canvas.onpointermove = function(e){
+      if(!dragging)return;
+      longitude += ((e.clientX-lastX)/canvas.width) * 2.2;
+      latitude += ((e.clientY-lastY)/canvas.height) * 1.3;
+      latitude = Math.max(-0.7, Math.min(0.7, latitude));
+      lastX=e.clientX; lastY=e.clientY;
+      renderPanorama();
+    };
+
+    // --- Load selected location ---
+    function loadLocation(locid){
+      let loc = LOCATIONS[locid];
+      image.src = loc.img;
+      image.dataset.curLoc = locid;
+      longitude=0; latitude=0;
+      isLoaded=false;
+      image.onload = ()=>{ isLoaded=true; renderPanorama(); };
+      renderPanorama();
+    }
+    document.getElementById("locsel").onchange = function(){
+      loadLocation(this.value);
+    };
+
+    // --- Initial Render ---
+    loadLocation("nyc");
+  </script>
+</body>
+</html>
